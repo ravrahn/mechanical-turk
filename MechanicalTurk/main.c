@@ -7,12 +7,16 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include "Game.h"
+#include "mechanicalTurk.h"
 
-int main(int argc, const char * argv[])
-{
+int main(int argc, const char * argv[]) {
 
-    // insert code here...
-    printf("Hello, World!\n");
-    return 0;
+    // test city!
+    
+    
+    printf("all tests passed!");
+    return EXIT_SUCCESS;
 }
-

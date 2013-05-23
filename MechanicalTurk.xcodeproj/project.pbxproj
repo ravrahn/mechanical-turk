@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		8065A19D174CAD2500A1A3EC /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 8065A19C174CAD2500A1A3EC /* main.c */; };
 		8065A19F174CAD2500A1A3EC /* MechanicalTurk.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8065A19E174CAD2500A1A3EC /* MechanicalTurk.1 */; };
+		8065A1A7174CAD5F00A1A3EC /* mechanicalTurk.c in Sources */ = {isa = PBXBuildFile; fileRef = 8065A1A6174CAD5F00A1A3EC /* mechanicalTurk.c */; };
+		8065A1A9174CAD6500A1A3EC /* Game.c in Sources */ = {isa = PBXBuildFile; fileRef = 8065A1A8174CAD6500A1A3EC /* Game.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -28,6 +30,10 @@
 		8065A199174CAD2500A1A3EC /* MechanicalTurk */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MechanicalTurk; sourceTree = BUILT_PRODUCTS_DIR; };
 		8065A19C174CAD2500A1A3EC /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		8065A19E174CAD2500A1A3EC /* MechanicalTurk.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = MechanicalTurk.1; sourceTree = "<group>"; };
+		8065A1A5174CAD5B00A1A3EC /* Game.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Game.h; sourceTree = "<group>"; };
+		8065A1A6174CAD5F00A1A3EC /* mechanicalTurk.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mechanicalTurk.c; sourceTree = "<group>"; };
+		8065A1A8174CAD6500A1A3EC /* Game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Game.c; sourceTree = "<group>"; };
+		8065A1AA174CAD6D00A1A3EC /* mechanicalTurk.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mechanicalTurk.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,8 +66,12 @@
 		8065A19B174CAD2500A1A3EC /* MechanicalTurk */ = {
 			isa = PBXGroup;
 			children = (
+				8065A1A5174CAD5B00A1A3EC /* Game.h */,
 				8065A19C174CAD2500A1A3EC /* main.c */,
+				8065A1A6174CAD5F00A1A3EC /* mechanicalTurk.c */,
+				8065A1A8174CAD6500A1A3EC /* Game.c */,
 				8065A19E174CAD2500A1A3EC /* MechanicalTurk.1 */,
+				8065A1AA174CAD6D00A1A3EC /* mechanicalTurk.h */,
 			);
 			path = MechanicalTurk;
 			sourceTree = "<group>";
@@ -118,6 +128,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				8065A19D174CAD2500A1A3EC /* main.c in Sources */,
+				8065A1A7174CAD5F00A1A3EC /* mechanicalTurk.c in Sources */,
+				8065A1A9174CAD6500A1A3EC /* Game.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
