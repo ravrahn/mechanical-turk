@@ -29,6 +29,7 @@ typedef struct _vertices {
     int amountOfvertices;
 } vertices;
 
+<<<<<<< HEAD
 typedef struct spatialInfo{
     int regionDiceValues[NUM_REGIONS];
     int regionDegreeTypes[NUM_REGIONS];
@@ -38,30 +39,72 @@ typedef struct spatialInfo{
 
 static spatialInfo retriveInfo(Game g);
 
+=======
+// Returns the best action to make in this turn.
+>>>>>>> 119c6a0168d3eceac859e940c84ce019ec13ef65
 static action chooseAction(Game g);
+
+// Returns the best vertex on which to build a campus
+// or illegalVertex() if there is none.
 static vertex chooseCampus(Game g);
+
+// Returns the best normal campus to convert to a Go8 campus
+// or illegalVertex() if there is none.
 static vertex chooseGO8(Game g);
+
+// Returns the best place to build an ARC
+// or illegalArc() if there is none.
 static arc chooseArc(Game g);
+
+// Returns whether it is possible to construct a spinoff
 static int chooseSpinoff(Game g);
 
+
+// Returns all the ARCs adjacent a given vertex.
 static arcs arcsAroundVertex(vertex v);
+
+// Returns all the ARCs adjacent to a given ARC.
 static arcs arcsAroundArc(arc a);
 
+
+// Returns all vertices adjacent to a given vertex.
 static vertices verticesAroundVertex(vertex v);
+
+// Returns all vertices adjacent to a given ARC.
 static vertices verticesAroundArc(arc a);
 
+
+// Checks if two vertices are equal.
 static int verticesAreEqual(vertex a, vertex b);
+
+// Checks if two ARCs are equal.
 static int arcsAreEqual(arc a, arc b);
+
+// Checks if two regions are equal.
 static int regionsAreEqual(region a, region b);
 
+
+// Returns an impossible vertex
 static vertex illegalVertex(void);
+
+// Returns an impossible ARC
 static arc illegalArc(void);
 
-static int isLegalVertex(vertex v);
-static int isLegalArc(arc a);
+// Checks if a vertex is on the board.
+static int isLegalVertex(Game g, vertex v);
 
+// Checks if a vertex is on the board.
+static int isLegalArc(Game g, arc a);
+
+
+// Returns an array of all ARCs owned by a given player.
 static arcs ownedArcs(Game g, uni me);
+
+// Returns an array of all campuses owned by a given player.
 static vertices ownedCampuses(Game g, uni me);
+
+// Checks if two regions are adjacent.
+static int regionsAreAdjacent(region a, region b);
 
 action bestMove(Game g) {
     action bestMove;
@@ -126,9 +169,9 @@ static vertex chooseCampus(Game g){
         while (arcCount < mArcs.amountOfArcs && verticesAreEqual(legalVertex, illegalVertex())){
             testVertices = verticesAroundArc(mArcs.arcs[arcCount]);
             
-            if (isLegalVertex(testVertices.vertices[0])){
+            if (isLegalVertex(g, testVertices.vertices[0])){
                 legalVertex = testVertices.vertices[0];
-            } else if (isLegalVertex(testVertices.vertices[1])){
+            } else if (isLegalVertex(g, testVertices.vertices[1])){
                 legalVertex = testVertices.vertices[1];
             } else if (isLegalVertex(testVertices.vertices[2])){
                 legalVertex = testVertices.vertices[2];
@@ -156,14 +199,23 @@ static arc chooseArc(Game g) {
             
             testArcs = arcsAroundArc(mArcs.arcs[arcCount]);
             
-            if (isLegalArc(testArcs.arcs[0])){
+            if (isLegalArc(g, testArcs.arcs[0])){
                 legalArc = testArcs.arcs[0];
+<<<<<<< HEAD
             } else if (isLegalArc(testArcs.arcs[1])){
                 legalArc = testArcs.arcs[1];
             } else if (isLegalArc(testArcs.arcs[2])){
                 legalArc = testArcs.arcs[2];
             } else if (isLegalArc(testArcs.arcs[3])){
                 legalArc = testArcs.arcs[3];
+=======
+            } else if (isLegalArc(g, testArcs.arcs[1])){
+                legalArc = testArcs.arcs[0];
+            } else if (isLegalArc(g, testArcs.arcs[2])){
+                legalArc = testArcs.arcs[0];
+            } else if (isLegalArc(g, testArcs.arcs[3])){
+                legalArc = testArcs.arcs[0];
+>>>>>>> 119c6a0168d3eceac859e940c84ce019ec13ef65
             }
             arcCount++;
         }
@@ -326,12 +378,39 @@ static arc illegalArc(void) {
     return a;
 }
 
-static int isLegalVertex(vertex v) {
-    return TRUE;
+static int isLegalVertex(Game g, vertex v) {
+    int isLegal = TRUE;
+    
+    if (isSea(g, v.region0) &&
+        isSea(g, v.region1) &&
+        isSea(g, v.region2)) {
+        isLegal = FALSE;
+    }
+    
+    if (!regionsAreAdjacent(v.region0, v.region1) &&
+        !regionsAreAdjacent(v.region0, v.region2) &&
+        !regionsAreAdjacent(v.region1, v.region2)) {
+        isLegal = FALSE;
+    }
+    
+    
+    
+    return isLegal;
 }
 
-static int isLegalArc(arc a) {
-    return TRUE;
+static int isLegalArc(Game g, arc a) {
+    int isLegal = TRUE;
+    
+    if (isSea(g, a.region0) &&
+        isSea(g, a.region1)) {
+        isLegal = FALSE;
+    }
+    
+    if (!regionsAreAdjacent(a.region0, a.region1)) {
+        isLegal = FALSE;
+    }
+    
+    return isLegal;
 }
 
 static arcs ownedArcs(Game g, uni me) {
@@ -346,6 +425,7 @@ static vertices ownedCampuses(Game g, uni me) {
     return result;
 }
 
+<<<<<<< HEAD
 static spatialInfo retriveInfo(Game g){
     spatialInfo gameInfo;
     
@@ -373,3 +453,26 @@ static spatialInfo retriveInfo(Game g){
     return gameInfo;
 }
                     
+=======
+static int regionsAreAdjacent(region a, region b){
+    int regionsAdjacent;
+    int xCoordinatesAdjacent = 0;
+    int yCoordinatesAdjacent = 0;
+    
+    if((a.x == b.x)||(a.x + 1 == b.x)||(a.x - 1 == b.x)){
+        xCoordinatesAdjacent = TRUE;
+    }
+    
+    if((a.y == b.y)||(a.y + 1 == b.y)||(a.y - 1 == b.y)){
+        yCoordinatesAdjacent = TRUE;
+    }
+    
+    if((xCoordinatesAdjacent == TRUE) && (yCoordinatesAdjacent == TRUE)){
+        regionsAdjacent = TRUE;
+    } else {
+        regionsAdjacent = FALSE;
+    }
+    
+    return regionsAdjacent;
+}
+>>>>>>> 119c6a0168d3eceac859e940c84ce019ec13ef65
