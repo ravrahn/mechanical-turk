@@ -28,29 +28,66 @@ typedef struct _vertices {
     int amountOfvertices;
 } vertices;
 
+// Returns the best action to make in this turn.
 static action chooseAction(Game g);
+
+// Returns the best vertex on which to build a campus
+// or illegalVertex() if there is none.
 static vertex chooseCampus(Game g);
+
+// Returns the best normal campus to convert to a Go8 campus
+// or illegalVertex() if there is none.
 static vertex chooseGO8(Game g);
+
+// Returns the best place to build an ARC
+// or illegalArc() if there is none.
 static arc chooseArc(Game g);
+
+// Returns whether it is possible to construct a spinoff
 static int chooseSpinoff(Game g);
 
+
+// Returns all the ARCs adjacent a given vertex.
 static arcs arcsAroundVertex(vertex v);
+
+// Returns all the ARCs adjacent to a given ARC.
 static arcs arcsAroundArc(arc a);
 
+
+// Returns all vertices adjacent to a given vertex.
 static vertices verticesAroundVertex(vertex v);
+
+// Returns all vertices adjacent to a given ARC.
 static vertices verticesAroundArc(arc a);
 
+
+// Checks if two vertices are equal.
 static int verticesAreEqual(vertex a, vertex b);
+
+// Checks if two ARCs are equal.
 static int arcsAreEqual(arc a, arc b);
+
+// Checks if two regions are equal.
 static int regionsAreEqual(region a, region b);
 
+
+// Returns an impossible vertex
 static vertex illegalVertex(void);
+
+// Returns an impossible ARC
 static arc illegalArc(void);
 
+// Checks if a vertex is on the board.
 static int isLegalVertex(vertex v);
+
+// Checks if a vertex is on the board.
 static int isLegalArc(arc a);
 
+
+// Returns an array of all ARCs owned by a given player.
 static arcs ownedArcs(Game g, uni me);
+
+// Returns an array of all campuses owned by a given player.
 static vertices ownedCampuses(Game g, uni me);
 
 action bestMove(Game g) {
