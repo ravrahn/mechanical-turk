@@ -2,10 +2,17 @@
 //  mechanicalTurk.c
 //  KnowledgeIsland
 //
-//  Created by Owen Cassidy on 21/05/13.
+//  Created by Owen Cassidy and Daniel Parker on 21/05/13 - 25/05/13
 //  Copyright (c) 2013 Owen Cassidy. All rights reserved.
 //
-//  Daniel
+
+/* TODO
+ **** ownedCampuses
+ **** ownedArcs
+ **** arcsAroundArc
+ **** verticesAroundArc
+ **** verticesAroundVertex
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,10 +61,6 @@ static vertex chooseGO8(Game g);
 // or illegalArc() if there is none.
 static arc chooseArc(Game g);
 
-// Returns whether it is possible to construct a spinoff
-static int chooseSpinoff(Game g);
-
-
 // Returns all the ARCs adjacent a given vertex.
 static arcs arcsAroundVertex(vertex v);
 
@@ -105,12 +108,13 @@ static vertices ownedCampuses(Game g, uni me);
 static int regionsAreAdjacent(region a, region b);
 
 // Checks if player has resources to perform an action
-static int canAfford(Game g, action a);
+static int canAfford(Game g, int actionCode);
 
 action bestMove(Game g) {
     action bestMove;
     
     bestMove = chooseAction(g);
+    
     return bestMove;
 }
 
@@ -119,18 +123,28 @@ static action chooseAction(Game g){
     action legalAction;
     
     if(verticesAreEqual(chooseGO8(g), illegalVertex())){
+        
         legalAction.actionCode = BUILD_GO8;
         legalAction.targetVertex = chooseGO8(g);
-    } else if(verticesAreEqual(chooseCampus(g), illegalVertex())){
+        
+    } else if(!verticesAreEqual(chooseCampus(g), illegalVertex())){
+        
         legalAction.actionCode = BUILD_CAMPUS;
         legalAction.targetVertex = chooseCampus(g);
-    } else if(chooseSpinoff(g)){
+        
+    } else if(canAfford(g, START_SPINOFF)){
+        
         legalAction.actionCode = START_SPINOFF;
-    } else if(arcsAreEqual(chooseArc(g), illegalArc())){
+        
+    } else if(!arcsAreEqual(chooseArc(g), illegalArc())){
+        
         legalAction.actionCode = CREATE_ARC;
         legalAction.targetARC = chooseArc(g);
+        
     } else {
+        
         legalAction.actionCode = PASS;
+        
     }
     return legalAction;
 }
@@ -141,10 +155,7 @@ static vertex chooseGO8(Game g){
     uni me = getTurnNumber(g);
     
     //Region Coordinates lie between -2 and 2.
-    if (getStudents(g, me, STUDENT_BPS) >= 1 &&
-        getStudents(g, me, STUDENT_BQN) >= 1 &&
-        getStudents(g, me, STUDENT_MJ)  >= 1 &&
-        getStudents(g, me, STUDENT_MTV) >= 1){
+    if (canAfford(g, BUILD_GO8)){
         
         if (ownedCampuses(g, me).amountOfvertices != 0) {
             testVertex = ownedCampuses(g, me).vertices[0];
@@ -159,10 +170,7 @@ static vertex chooseCampus(Game g){
     uni me = getTurnNumber(g);
     
     //Region Coordinates lie between -2 and 2.
-    if (getStudents(g, me, STUDENT_BPS) >= 1 &&
-        getStudents(g, me, STUDENT_BQN) >= 1 &&
-        getStudents(g, me, STUDENT_MJ)  >= 1 &&
-        getStudents(g, me, STUDENT_MTV) >= 1){
+    if (canAfford(g, BUILD_CAMPUS)){
         
         arcs mArcs = ownedArcs(g, me);
         int arcCount = 0;
@@ -190,8 +198,7 @@ static arc chooseArc(Game g) {
     arcs mArcs = ownedArcs(g, me);
     
     //Region Coordinates lie between -2 and 2.
-    if (getStudents(g, me, STUDENT_BPS) >= 1 &&
-        getStudents(g, me, STUDENT_BQN) >= 1){
+    if (canAfford(g, CREATE_ARC)){
         
         int arcCount = 0;
         
@@ -217,19 +224,6 @@ static arc chooseArc(Game g) {
     } else {
         return illegalArc();
     }
-}
-
-static int chooseSpinoff(Game g) {
-    int legalSpinoff = FALSE;
-    uni me = getTurnNumber(g);
-    
-    if (getStudents(g, me, STUDENT_MJ)  >= 1 &&
-        getStudents(g, me, STUDENT_MTV) >= 1 &&
-        getStudents(g, me, STUDENT_MMONEY) >= 1){
-        legalSpinoff = TRUE;
-    }
-    
-    return legalSpinoff;
 }
     
 static arcs arcsAroundVertex(vertex v) {
@@ -601,7 +595,61 @@ static spatialInfo retriveInfo(Game g){
     return gameInfo;
 }
 
+<<<<<<< HEAD
 static int canAfford(Game g, action a) {
     
     return TRUE;
 }
+=======
+static int canAfford(Game g, int actionCode) {
+    int canAfford;
+    uni me;
+    
+    me = getTurnNumber(g);
+    
+    if (actionCode == BUILD_CAMPUS) {
+        
+        if (getStudents(g, me, STUDENT_BPS) >= 1 &&
+            getStudents(g, me, STUDENT_BQN) >= 1 &&
+            getStudents(g, me, STUDENT_MJ)  >= 1 &&
+            getStudents(g, me, STUDENT_MTV) >= 1){
+            canAfford = TRUE;
+        } else {
+            canAfford = FALSE;
+        }
+        
+    } else if (actionCode == BUILD_GO8) {
+        
+        if (getStudents(g, me, STUDENT_MJ)  >= 2 &&
+            getStudents(g, me, STUDENT_MMONEY) >= 3){
+            canAfford = TRUE;
+        } else {
+            canAfford = FALSE;
+        }
+        
+    } else if (actionCode == CREATE_ARC) {
+        
+        if (getStudents(g, me, STUDENT_BPS) >= 1 &&
+            getStudents(g, me, STUDENT_BQN) >= 1){
+            canAfford = TRUE;
+        } else {
+            canAfford = FALSE;
+        }
+        
+    } else if (actionCode == START_SPINOFF) {
+        
+        if (getStudents(g, me, STUDENT_MJ)  >= 1 &&
+            getStudents(g, me, STUDENT_MTV) >= 1 &&
+            getStudents(g, me, STUDENT_MMONEY) >= 1){
+            canAfford = TRUE;
+        } else {
+            canAfford = FALSE;
+        }
+        
+    } else {
+        canAfford = FALSE;
+    }
+    
+    return canAfford;
+}
+>>>>>>> a70126b1a02d239bfbcdd511b0d776b3e7846338
