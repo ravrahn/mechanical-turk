@@ -510,7 +510,6 @@ static int regionsAreAdjacent(region a, region b){
     return regionsAdjacent;
 }
 
-<<<<<<< HEAD
 static spatialInfo retriveInfo(Game g){
     spatialInfo gameInfo;
     
@@ -539,8 +538,8 @@ static spatialInfo retriveInfo(Game g){
 
     
     return gameInfo;
-=======
+}
+
 static int canAfford(Game g, action a) {
     return TRUE;
->>>>>>> 1984f796971ed207008763447fe13afff8ce9ba4
 }
