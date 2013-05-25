@@ -34,7 +34,7 @@ typedef struct spatialInfo{
     int regionDiceValues[NUM_REGIONS];
     int regionDegreeTypes[NUM_REGIONS];
     vertex campusLocations[NUM_UNIS][MAX_CAMPUSES];
-    vertex arcLocations[NUM_UNIS][MAX_ARCS];
+    arc arcLocations[NUM_UNIS][MAX_ARCS];
 } spatialInfo;
 
 static spatialInfo retriveInfo(Game g);
@@ -510,7 +510,6 @@ static int regionsAreAdjacent(region a, region b){
     return regionsAdjacent;
 }
 
-<<<<<<< HEAD
 static spatialInfo retriveInfo(Game g){
     spatialInfo gameInfo;
     
@@ -536,11 +535,73 @@ static spatialInfo retriveInfo(Game g){
     //Tests all of the verticies on the board and stores campus locations
     //into spatialInfo. The Arcs are also found and stored in a similar
     //way.
-
+    testRegion.x = -3;
+    testRegion.y = 3;
+    
+    arc testArc;
+    region adjacentTestRegion;
+    int arcCountA = 0;
+    int arcCountB = 0;
+    int arcCountC = 0;
+    int vertexCountA = 0;
+    int vertexCountB = 0;
+    int vertexCountC = 0;
+    
+    while(testRegion.x <= 3){
+        testRegion.y = 3;
+        while(testRegion.y >= -3){
+            //Initialising the adjacentTestRegion to be directly below
+            //the test region.
+            adjacentTestRegion.y = testRegion.y -1;
+            adjacentTestRegion.x = testRegion.x;
+            testArc.region0 = testRegion;
+            testArc.region1 = adjacentTestRegion;
+            
+            int playersArc = getARC(g, testArc);
+            if(playersArc == UNI_A){
+                gameInfo.arcLocations[UNI_A][arcCountA] = testArc;
+                arcCountA++;
+            } else if(playersArc == UNI_B){
+                gameInfo.arcLocations[UNI_B][arcCountB] = testArc;
+                arcCountB++;
+            } else if(playersArc == UNI_C){
+                gameInfo.arcLocations[UNI_C][arcCountC] = testArc;
+                arcCountC++;
+            }
+            
+            vertices testVertices = verticesAroundArc(testArc);
+            int playersVertex0 = getCampus(g, testVertices.vertices[0]);
+            int playersVertex1 = getCampus(g, testVertices.vertices[1]);
+            
+            if(playersVertex0 == UNI_A){
+                gameInfo.campusLocations[UNI_A][vertexCountA] = testVertices.vertices[0];
+                vertexCountA++;
+            } else if(playersVertex1 == UNI_A){
+                gameInfo.campusLocations[UNI_A][vertexCountA] = testVertices.vertices[1];
+                vertexCountA++;
+            } else if(playersVertex0 == UNI_B){
+                gameInfo.campusLocations[UNI_B][vertexCountB] = testVertices.vertices[0];
+                vertexCountB++;
+            } else if(playersVertex1 == UNI_B){
+                gameInfo.campusLocations[UNI_B][vertexCountB] = testVertices.vertices[1];
+                vertexCountB++;
+            } else if(playersVertex0 == UNI_B){
+                gameInfo.campusLocations[UNI_C][vertexCountC] = testVertices.vertices[0];
+                vertexCountC++;
+            } else if(playersVertex1 == UNI_C){
+                gameInfo.campusLocations[UNI_C][vertexCountC] = testVertices.vertices[1];
+                vertexCountC++;
+            }
+            
+            testRegion.y--;
+        }
+        testRegion.x++;
+    }
     
     return gameInfo;
-=======
+}
+
 static int canAfford(Game g, action a) {
+    
     return TRUE;
->>>>>>> 1984f796971ed207008763447fe13afff8ce9ba4
 }
