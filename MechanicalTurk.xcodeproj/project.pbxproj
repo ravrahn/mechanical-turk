@@ -66,12 +66,12 @@
 		8065A19B174CAD2500A1A3EC /* MechanicalTurk */ = {
 			isa = PBXGroup;
 			children = (
+				8065A1AA174CAD6D00A1A3EC /* mechanicalTurk.h */,
 				8065A1A5174CAD5B00A1A3EC /* Game.h */,
 				8065A19C174CAD2500A1A3EC /* main.c */,
 				8065A1A6174CAD5F00A1A3EC /* mechanicalTurk.c */,
 				8065A1A8174CAD6500A1A3EC /* Game.c */,
 				8065A19E174CAD2500A1A3EC /* MechanicalTurk.1 */,
-				8065A1AA174CAD6D00A1A3EC /* mechanicalTurk.h */,
 			);
 			path = MechanicalTurk;
 			sourceTree = "<group>";
@@ -228,6 +228,7 @@
 				8065A1A4174CAD2500A1A3EC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
