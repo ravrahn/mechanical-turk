@@ -613,12 +613,6 @@ static spatialInfo retriveInfo(Game g){
     return gameInfo;
 }
 
-<<<<<<< HEAD
-static int canAfford(Game g, action a) {
-    
-    return TRUE;
-}
-=======
 static int canAfford(Game g, int actionCode) {
     int canAfford;
     uni me;
@@ -670,4 +664,3 @@ static int canAfford(Game g, int actionCode) {
     
     return canAfford;
 }
->>>>>>> a70126b1a02d239bfbcdd511b0d776b3e7846338
