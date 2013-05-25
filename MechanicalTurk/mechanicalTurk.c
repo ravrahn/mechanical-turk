@@ -104,6 +104,9 @@ static vertices ownedCampuses(Game g, uni me);
 // Checks if two regions are adjacent.
 static int regionsAreAdjacent(region a, region b);
 
+// Checks if player has resources to perform an action
+static int canAfford(Game g, action a);
+
 action bestMove(Game g) {
     action bestMove;
     
@@ -369,36 +372,106 @@ static arc illegalArc(void) {
 }
 
 static int isLegalVertex(Game g, vertex v) {
-    int isLegal = TRUE;
+    int isLegal;
     
-    if (isSea(g, v.region0) &&
-        isSea(g, v.region1) &&
-        isSea(g, v.region2)) {
-        isLegal = FALSE;
+    int isOnBoard;
+    int exists;
+    int hasAdjacentCampus;
+    int hasAdjacentArc;
+    
+    vertices adjacentVertices;
+    arcs adjacentArcs;
+    
+    int i;
+    
+    if (!isSea(g, v.region0) &&
+        !isSea(g, v.region1) &&
+        !isSea(g, v.region2)) {
+        isOnBoard = TRUE;
+    } else {
+        isOnBoard = FALSE;
     }
     
-    if (!regionsAreAdjacent(v.region0, v.region1) &&
-        !regionsAreAdjacent(v.region0, v.region2) &&
-        !regionsAreAdjacent(v.region1, v.region2)) {
-        isLegal = FALSE;
+    if (regionsAreAdjacent(v.region0, v.region1) &&
+        regionsAreAdjacent(v.region0, v.region2) &&
+        regionsAreAdjacent(v.region1, v.region2)) {
+        exists = TRUE;
+    } else {
+        exists = FALSE;
     }
     
+    adjacentVertices = verticesAroundVertex(v);
     
+    hasAdjacentCampus = FALSE;
+    
+    i = 0;
+    while (i < adjacentVertices.amountOfvertices) {
+        
+        if ((getCampus(g, adjacentVertices.vertices[i]) != VACANT_VERTEX)) {
+            
+                hasAdjacentCampus = TRUE;
+        }
+        
+        i++;
+    }
+    
+    adjacentArcs = arcsAroundVertex(v);
+    
+    hasAdjacentArc = FALSE;
+    
+    i = 0;
+    while (i < adjacentArcs.amountOfArcs) {
+        
+        if ((getARC(g, adjacentArcs.arcs[i]) == getTurnNumber(g) + 1)) {
+                hasAdjacentArc = TRUE;
+            }
+        
+        i++;
+    }
+    
+    isLegal = exists && isOnBoard && hasAdjacentArc && !hasAdjacentCampus;
     
     return isLegal;
 }
 
 static int isLegalArc(Game g, arc a) {
-    int isLegal = TRUE;
+    int isLegal;
     
-    if (isSea(g, a.region0) &&
-        isSea(g, a.region1)) {
-        isLegal = FALSE;
+    int isOnBoard;
+    int exists;
+    int hasAdjacentArc;
+    
+    arcs adjacentArcs;
+    
+    int i;
+    
+    if (!isSea(g, a.region0) &&
+        !isSea(g, a.region1)) {
+        isOnBoard = TRUE;
+    } else {
+        isOnBoard = FALSE;
     }
     
-    if (!regionsAreAdjacent(a.region0, a.region1)) {
-        isLegal = FALSE;
+    if (regionsAreAdjacent(a.region0, a.region1)) {
+        exists = TRUE;
+    } else {
+        exists = FALSE;
     }
+    
+    adjacentArcs = arcsAroundArc(a);
+    hasAdjacentArc = FALSE;
+    
+    i = 0;
+    while (i < adjacentArcs.amountOfArcs) {
+        
+        if ((getARC(g, adjacentArcs.arcs[i]) == getTurnNumber(g) + 1)) {
+            hasAdjacentArc = TRUE;
+        }
+        
+        i++;
+    }
+    
+    isLegal = isOnBoard && exists && hasAdjacentArc;
     
     return isLegal;
 }
@@ -437,6 +510,7 @@ static int regionsAreAdjacent(region a, region b){
     return regionsAdjacent;
 }
 
+<<<<<<< HEAD
 static spatialInfo retriveInfo(Game g){
     spatialInfo gameInfo;
     
@@ -465,4 +539,8 @@ static spatialInfo retriveInfo(Game g){
 
     
     return gameInfo;
+=======
+static int canAfford(Game g, action a) {
+    return TRUE;
+>>>>>>> 1984f796971ed207008763447fe13afff8ce9ba4
 }
