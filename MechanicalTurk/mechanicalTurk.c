@@ -13,6 +13,7 @@
 #include "mechanicalTurk.h"
 
 #define MAX_ARCS 100
+#define MAX_CAMPUSES 100
 #define MAX_VERTICES 100
 
 #define TRUE 1
@@ -27,6 +28,15 @@ typedef struct _vertices {
     vertex vertices[MAX_VERTICES];
     int amountOfvertices;
 } vertices;
+
+typedef struct spatialInfo{
+    int regionDiceValues[NUM_REGIONS];
+    int regionDegreeTypes[NUM_REGIONS];
+    vertex campusLocations[NUM_UNIS][MAX_CAMPUSES];
+    vertex arcLocations[NUM_UNIS][MAX_ARCS];
+} spatialInfo;
+
+static spatialInfo retriveInfo(Game g);
 
 static action chooseAction(Game g);
 static vertex chooseCampus(Game g);
@@ -95,8 +105,6 @@ static vertex chooseGO8(Game g){
         if (ownedCampuses(g, me).amountOfvertices != 0) {
             testVertex = ownedCampuses(g, me).vertices[0];
         }
-        
-        
     }
     return legalVertex;
 }
@@ -122,6 +130,8 @@ static vertex chooseCampus(Game g){
                 legalVertex = testVertices.vertices[0];
             } else if (isLegalVertex(testVertices.vertices[1])){
                 legalVertex = testVertices.vertices[1];
+            } else if (isLegalVertex(testVertices.vertices[2])){
+                legalVertex = testVertices.vertices[2];
             }
             arcCount++;
         }
@@ -149,11 +159,11 @@ static arc chooseArc(Game g) {
             if (isLegalArc(testArcs.arcs[0])){
                 legalArc = testArcs.arcs[0];
             } else if (isLegalArc(testArcs.arcs[1])){
-                legalArc = testArcs.arcs[0];
+                legalArc = testArcs.arcs[1];
             } else if (isLegalArc(testArcs.arcs[2])){
-                legalArc = testArcs.arcs[0];
+                legalArc = testArcs.arcs[2];
             } else if (isLegalArc(testArcs.arcs[3])){
-                legalArc = testArcs.arcs[0];
+                legalArc = testArcs.arcs[3];
             }
             arcCount++;
         }
@@ -334,5 +344,32 @@ static vertices ownedCampuses(Game g, uni me) {
     vertices result;
     
     return result;
+}
+
+static spatialInfo retriveInfo(Game g){
+    spatialInfo gameInfo;
+    
+    //Retrieves all of the dice values and degree types for each of the
+    //tiles and stores them in the spatialInfo struct.
+    region testRegion;
+    testRegion.y = -3;
+    
+    int regionCount = 0;
+    while(regionCount < NUM_REGIONS){
+        while (testRegion.y <= 3){
+            testRegion.x = -3;
+            while (testRegion.x <= 3){
+                gameInfo.regionDiceValues[regionCount] = getDiceValue(g, testRegion);
+                gameInfo.regionDegreeTypes[regionCount] = getDegree(g, testRegion);
+                testRegion.x++;
+            }
+            testRegion.y++;
+        }
+        regionCount++;
+    }
+    
+    
+    
+    return gameInfo;
 }
                     
