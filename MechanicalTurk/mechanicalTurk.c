@@ -203,6 +203,8 @@ static arcs arcsAroundVertex(vertex v) {
 static arcs arcsAroundArc(arc a) {
     arcs arr;
     
+    
+    
     arr.amountOfArcs = 4;
     
     return arr;
@@ -210,6 +212,8 @@ static arcs arcsAroundArc(arc a) {
 
 static vertices verticesAroundVertex(vertex v) {
     vertices arr;
+    
+    
     
     arr.amountOfvertices = 3;
     
@@ -277,8 +281,16 @@ static int arcsAreEqual(arc a, arc b){
     return result;
 }
 
-static int regionsAreEqual(region a, region b) {
-    return TRUE;
+static int regionsAreEqual(region a, region b){
+    int result;
+    
+    if ((a.x == b.x) && (a.y == b.y)){
+        result = TRUE;
+    } else {
+        result = FALSE;
+    }
+    
+    return result;
 }
 
 static vertex illegalVertex(void) {
