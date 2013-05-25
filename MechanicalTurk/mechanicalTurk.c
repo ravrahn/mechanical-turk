@@ -122,30 +122,48 @@ static action chooseAction(Game g){
     
     action legalAction;
     
-    if(verticesAreEqual(chooseGO8(g), illegalVertex())){
+    vertex chosenCampus;
+    arc chosenArc;
+    vertex chosenGO8;
+    
+    chosenGO8 = chooseGO8(g);
+    
+    if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
+       canAfford(g, BUILD_GO8)){
         
         legalAction.actionCode = BUILD_GO8;
-        legalAction.targetVertex = chooseGO8(g);
-        
-    } else if(!verticesAreEqual(chooseCampus(g), illegalVertex())){
-        
-        legalAction.actionCode = BUILD_CAMPUS;
-        legalAction.targetVertex = chooseCampus(g);
-        
-    } else if(canAfford(g, START_SPINOFF)){
-        
-        legalAction.actionCode = START_SPINOFF;
-        
-    } else if(!arcsAreEqual(chooseArc(g), illegalArc())){
-        
-        legalAction.actionCode = CREATE_ARC;
-        legalAction.targetARC = chooseArc(g);
+        legalAction.targetVertex = chosenGO8;
         
     } else {
+        chosenCampus = chooseCampus(g);
+        if(!verticesAreEqual(chosenCampus, illegalVertex()) &&
+           canAfford(g, BUILD_CAMPUS)){
         
-        legalAction.actionCode = PASS;
+            legalAction.actionCode = BUILD_CAMPUS;
+            legalAction.targetVertex = chosenCampus;
+            
+        } else {
+            if(canAfford(g, START_SPINOFF)){
         
+                legalAction.actionCode = START_SPINOFF;
+                
+            } else {
+                chosenArc = chooseArc(g);
+                if(!arcsAreEqual(chooseArc(g), illegalArc()) &&
+                   canAfford(g, CREATE_ARC)){
+                
+                    legalAction.actionCode = CREATE_ARC;
+                    legalAction.targetARC = chooseArc(g);
+                    
+                } else {
+                    
+                    legalAction.actionCode = PASS;
+        
+                }
+            }
+        }
     }
+    
     return legalAction;
 }
 
