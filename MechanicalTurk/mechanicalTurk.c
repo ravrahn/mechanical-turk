@@ -29,7 +29,7 @@ typedef struct _vertices {
     int amountOfvertices;
 } vertices;
 
-<<<<<<< HEAD
+
 typedef struct spatialInfo{
     int regionDiceValues[NUM_REGIONS];
     int regionDegreeTypes[NUM_REGIONS];
@@ -39,9 +39,7 @@ typedef struct spatialInfo{
 
 static spatialInfo retriveInfo(Game g);
 
-=======
 // Returns the best action to make in this turn.
->>>>>>> 119c6a0168d3eceac859e940c84ce019ec13ef65
 static action chooseAction(Game g);
 
 // Returns the best vertex on which to build a campus
@@ -173,7 +171,7 @@ static vertex chooseCampus(Game g){
                 legalVertex = testVertices.vertices[0];
             } else if (isLegalVertex(g, testVertices.vertices[1])){
                 legalVertex = testVertices.vertices[1];
-            } else if (isLegalVertex(testVertices.vertices[2])){
+            } else if (isLegalVertex(g, testVertices.vertices[2])){
                 legalVertex = testVertices.vertices[2];
             }
             arcCount++;
@@ -201,21 +199,13 @@ static arc chooseArc(Game g) {
             
             if (isLegalArc(g, testArcs.arcs[0])){
                 legalArc = testArcs.arcs[0];
-<<<<<<< HEAD
-            } else if (isLegalArc(testArcs.arcs[1])){
-                legalArc = testArcs.arcs[1];
-            } else if (isLegalArc(testArcs.arcs[2])){
-                legalArc = testArcs.arcs[2];
-            } else if (isLegalArc(testArcs.arcs[3])){
-                legalArc = testArcs.arcs[3];
-=======
+
             } else if (isLegalArc(g, testArcs.arcs[1])){
-                legalArc = testArcs.arcs[0];
+                legalArc = testArcs.arcs[1];
             } else if (isLegalArc(g, testArcs.arcs[2])){
-                legalArc = testArcs.arcs[0];
+                legalArc = testArcs.arcs[2];
             } else if (isLegalArc(g, testArcs.arcs[3])){
-                legalArc = testArcs.arcs[0];
->>>>>>> 119c6a0168d3eceac859e940c84ce019ec13ef65
+                legalArc = testArcs.arcs[3];
             }
             arcCount++;
         }
@@ -425,7 +415,28 @@ static vertices ownedCampuses(Game g, uni me) {
     return result;
 }
 
-<<<<<<< HEAD
+static int regionsAreAdjacent(region a, region b){
+    int regionsAdjacent;
+    int xCoordinatesAdjacent = 0;
+    int yCoordinatesAdjacent = 0;
+    
+    if((a.x == b.x)||(a.x + 1 == b.x)||(a.x - 1 == b.x)){
+        xCoordinatesAdjacent = TRUE;
+    }
+    
+    if((a.y == b.y)||(a.y + 1 == b.y)||(a.y - 1 == b.y)){
+        yCoordinatesAdjacent = TRUE;
+    }
+    
+    if((xCoordinatesAdjacent == TRUE) && (yCoordinatesAdjacent == TRUE)){
+        regionsAdjacent = TRUE;
+    } else {
+        regionsAdjacent = FALSE;
+    }
+    
+    return regionsAdjacent;
+}
+
 static spatialInfo retriveInfo(Game g){
     spatialInfo gameInfo;
     
@@ -448,31 +459,10 @@ static spatialInfo retriveInfo(Game g){
         regionCount++;
     }
     
-    
+    //Tests all of the verticies on the board and stores campus locations
+    //into spatialInfo. The Arcs are also found and stored in a similar
+    //way.
+
     
     return gameInfo;
 }
-                    
-=======
-static int regionsAreAdjacent(region a, region b){
-    int regionsAdjacent;
-    int xCoordinatesAdjacent = 0;
-    int yCoordinatesAdjacent = 0;
-    
-    if((a.x == b.x)||(a.x + 1 == b.x)||(a.x - 1 == b.x)){
-        xCoordinatesAdjacent = TRUE;
-    }
-    
-    if((a.y == b.y)||(a.y + 1 == b.y)||(a.y - 1 == b.y)){
-        yCoordinatesAdjacent = TRUE;
-    }
-    
-    if((xCoordinatesAdjacent == TRUE) && (yCoordinatesAdjacent == TRUE)){
-        regionsAdjacent = TRUE;
-    } else {
-        regionsAdjacent = FALSE;
-    }
-    
-    return regionsAdjacent;
-}
->>>>>>> 119c6a0168d3eceac859e940c84ce019ec13ef65
