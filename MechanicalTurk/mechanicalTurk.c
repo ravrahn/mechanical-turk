@@ -129,6 +129,33 @@ static int canAfford(Game g, int actionCode);
 // - - HORIZONTAL
 static int whichWay(arc a);
 
+// Returns a vertex based on a region:
+//         ____
+//        /    \
+//   ____/  r1  \
+//  /    \      /
+// /  r0  \____/
+// \  in  /    \
+//  \____/  r2  \
+//       \      /
+//        \____/
+static vertex rightVertexFromRegion(region r);
+
+// Returns a vertex based on a region:
+//    ____
+//   /    \
+//  /  r1  \____
+//  \      /    \
+//   \____/  r0  \
+//   /    \  in  /
+//  /  r2  \____/
+//  \      /
+//   \____/
+static vertex leftVertexFromRegion(region r);
+
+// Returns an array of all legal vertices.
+static vertices getAllVertices(Game g);
+
 
 action bestMove(Game g) {
     action bestMove;
@@ -157,6 +184,8 @@ static action chooseAction(Game g){
     } else {
         chosenCampus = chooseCampus(g);
         
+        printf("I chose (%d, %d), (%d, %d), (%d, %d)\n", chosenCampus.region0.x, chosenCampus.region0.y, chosenCampus.region1.x, chosenCampus.region1.y, chosenCampus.region2.x, chosenCampus.region2.y);
+        
         if(!verticesAreEqual(chosenCampus, illegalVertex()) &&
            canAfford(g, BUILD_CAMPUS)){
         
@@ -171,7 +200,7 @@ static action chooseAction(Game g){
             } else {
                 chosenArc = chooseArc(g);
                 
-                printf("I chose (%d, %d), (%d, %d)", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
+                printf("I chose (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
                 
                 if(canAfford(g, CREATE_ARC) &&
                    !arcsAreEqual(chosenArc, illegalArc())){
@@ -843,67 +872,34 @@ static arcs ownedArcs(Game g, uni me) {
 
 static vertices ownedCampuses(Game g, uni me) {
     vertices result;
-    vertex v;
+    vertices allVertices;
+    int i;
     int j;
     int alreadyCounted;
     
-    v.region0.x = MIN_COORD;
-    v.region0.y = MIN_COORD;
-    v.region1.x = MIN_COORD;
-    v.region1.y = MIN_COORD;
-    v.region2.x = MIN_COORD;
-    v.region2.y = MIN_COORD;
-
-    vertex testVertex;
-    testVertex.region0.x = 0;
-    testVertex.region0.y = 3;
-    testVertex.region1.x = -1;
-    testVertex.region1.y = 3;
-    testVertex.region2.x = 0;
-    testVertex.region2.y = 2;
+    allVertices = getAllVertices(g);
     
-    while (v.region0.x <= MAX_COORD) {
-        while (v.region0.y <= MAX_COORD) {
-            while (v.region1.x <= MAX_COORD) {
-                while (v.region1.y <= MAX_COORD) {
-                    while (v.region2.x <= MAX_COORD) {
-                        while (v.region2.y <= MAX_COORD) {
-                            
-                            if ((getCampus(g, v) == me+1 ||
-                                getCampus(g, v) == me+4) &&
-                                isRealVertex(g, v)) {
-                                
-                                j = 0;
-                                alreadyCounted = FALSE;
-                                while (j < result.amountOfVertices) {
-                                    if (verticesAreEqual(result.vertices[j], v)) {
-                                        alreadyCounted = TRUE;
-                                    }
-                                    j++;
-                                }
-                                
-                                if (!alreadyCounted) {
-                                    result.vertices[result.amountOfVertices] = v;
-                                    result.amountOfVertices++;
-                                }
-                            }
-                            
-                            v.region2.y++;
-                        }
-                        v.region2.y = MIN_COORD;
-                        v.region2.x++;
-                    }
-                    v.region2.x = MIN_COORD;
-                    v.region1.y++;
+    i = 0;
+    while (i < allVertices.amountOfVertices) {
+        if ((getCampus(g, allVertices.vertices[i]) == me+1 ||
+            getCampus(g, allVertices.vertices[i]) == me+4) &&
+            isRealVertex(g, allVertices.vertices[i])) {
+            
+            j = 0;
+            alreadyCounted = FALSE;
+            while (j < result.amountOfVertices) {
+                if (verticesAreEqual(result.vertices[j], allVertices.vertices[i])) {
+                    alreadyCounted = TRUE;
                 }
-                v.region1.y = MIN_COORD;
-                v.region1.x++;
+                j++;
             }
-            v.region1.x = MIN_COORD;
-            v.region0.y++;
+            
+            if (!alreadyCounted) {
+                result.vertices[result.amountOfVertices] = allVertices.vertices[i];
+                result.amountOfVertices++;
+            }
         }
-        v.region0.y = MIN_COORD;
-        v.region0.x++;
+        i++;
     }
     
     assert(getCampuses(g, me) == result.amountOfVertices);
@@ -1090,4 +1086,64 @@ static int whichWay(arc a) {
     }
     
     return facing;
+}
+
+static vertex rightVertexFromRegion(region r) {
+    vertex v;
+    
+    v.region0 = r;
+    
+    v.region1.x = r.x;
+    v.region1.y = r.y+1;
+    
+    v.region2.x = r.x-1;
+    v.region2.y = r.y+1;
+    
+    return v;
+}
+
+static vertex leftVertexFromRegion(region r) {
+    vertex v;
+    
+    v.region0 = r;
+    
+    v.region1.x = r.x;
+    v.region1.y = r.y-1;
+    
+    v.region2.x = r.x+1;
+    v.region2.y = r.y-1;
+    
+    return v;
+}
+
+static vertices getAllVertices(Game g) {
+    int x;
+    int y;
+    region r;
+    vertices result;
+    vertex tempVertex;
+    
+    x = MIN_COORD;
+    while (x <= MAX_COORD) {
+        y = MIN_COORD;
+        while (y <= MAX_COORD) {
+            r.x = x;
+            r.y = y;
+            
+            tempVertex = rightVertexFromRegion(r);
+            if (isRealVertex(g, tempVertex)) {
+                result.vertices[result.amountOfVertices] = tempVertex;
+                result.amountOfVertices++;
+            }
+            
+            tempVertex = leftVertexFromRegion(r);
+            if (isRealVertex(g, tempVertex)) {
+                result.vertices[result.amountOfVertices] = tempVertex;
+                result.amountOfVertices++;
+            }
+            y++;
+        }
+        x++;
+    }
+    return result;
 }
