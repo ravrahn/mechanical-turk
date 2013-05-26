@@ -7,9 +7,6 @@
 //
 
 /* TODO
- **** ownedCampuses
- **** ownedArcs
- **** arcsAroundArc
  **** verticesAroundArc
  **** verticesAroundVertex
  */
@@ -23,8 +20,8 @@
 #define MAX_CAMPUSES 100
 #define MAX_VERTICES 100
 
-#define MIN_COORD -4
-#define MAX_COORD 4
+#define MIN_COORD -3
+#define MAX_COORD 3
 
 #define TOTAL_ARCS 62
 
@@ -38,7 +35,7 @@ typedef struct _arcs {
 
 typedef struct _vertices {
     vertex vertices[MAX_VERTICES];
-    int amountOfvertices;
+    int amountOfVertices;
 } vertices;
 
 
@@ -96,11 +93,17 @@ static vertex illegalVertex(void);
 // Returns an impossible ARC
 static arc illegalArc(void);
 
-// Checks if a vertex is on the board.
+// Checks if a vertex can be built on.
 static int isLegalVertex(Game g, vertex v);
 
-// Checks if a vertex is on the board.
+// Checks if an arc can be built on.
 static int isLegalArc(Game g, arc a);
+
+// Checks if a vertex is on the board.
+static int isRealVertex(Game g, vertex v);
+
+// Checks if an arc is on the board.
+static int isRealArc(Game g, arc a);
 
 
 // Returns an array of all ARCs owned by a given player.
@@ -119,8 +122,6 @@ action bestMove(Game g) {
     action bestMove;
     
     bestMove = chooseAction(g);
-    
-    ownedArcs(g, getTurnNumber(g));
     
     return bestMove;
 }
@@ -143,6 +144,7 @@ static action chooseAction(Game g){
         
     } else {
         chosenCampus = chooseCampus(g);
+        
         if(!verticesAreEqual(chosenCampus, illegalVertex()) &&
            canAfford(g, BUILD_CAMPUS)){
         
@@ -156,9 +158,14 @@ static action chooseAction(Game g){
                 
             } else {
                 chosenArc = chooseArc(g);
-                if(!arcsAreEqual(chooseArc(g), illegalArc()) &&
-                   canAfford(g, CREATE_ARC)){
                 
+                printf("I chose (%d, %d), (%d, %d)", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
+                
+                if(canAfford(g, CREATE_ARC) &&
+                   !arcsAreEqual(chosenArc, illegalArc())){
+                
+                    
+                    
                     legalAction.actionCode = CREATE_ARC;
                     legalAction.targetARC = chooseArc(g);
                     
@@ -182,7 +189,7 @@ static vertex chooseGO8(Game g){
     //Region Coordinates lie between -2 and 2.
     if (canAfford(g, BUILD_GO8)){
         
-        if (ownedCampuses(g, me).amountOfvertices != 0) {
+        if (ownedCampuses(g, me).amountOfVertices != 0) {
             testVertex = ownedCampuses(g, me).vertices[0];
         }
     }
@@ -220,37 +227,60 @@ static arc chooseArc(Game g) {
     arc legalArc = illegalArc();
     uni me = getTurnNumber(g);
     arcs testArcs;
-    arcs mArcs = ownedArcs(g, me);
+    arcs mArcs;
+    vertices mCampuses;
+    int arcCount;
+    int campusCount;
+    int i;
     
-    //Region Coordinates lie between -2 and 2.
-    if (canAfford(g, CREATE_ARC)){
+    mArcs = ownedArcs(g, me);
+    if (mArcs.amountOfArcs ==  0) {
+        mCampuses = ownedCampuses(g, me);
         
-        int arcCount = 0;
+        campusCount = 0;
+        
+        while (campusCount < mCampuses.amountOfVertices &&
+               arcsAreEqual(legalArc, illegalArc())) {
+            
+            testArcs = arcsAroundVertex(mCampuses.vertices[campusCount]);
+
+            i = 0;
+            while (i < testArcs.amountOfArcs) {
+                if (isLegalArc(g, testArcs.arcs[i]) &&
+                    arcsAreEqual(legalArc, illegalArc())) {
+                    legalArc = testArcs.arcs[i];
+                }
+                i++;
+            }
+            
+            campusCount++;
+            
+        }
+        
+    } else {
+        arcCount = 0;
         
         while (arcCount < mArcs.amountOfArcs &&
                arcsAreEqual(legalArc, illegalArc())) {
             
             testArcs = arcsAroundArc(mArcs.arcs[arcCount]);
-            
-            if (isLegalArc(g, testArcs.arcs[0])){
-                legalArc = testArcs.arcs[0];
 
-            } else if (isLegalArc(g, testArcs.arcs[1])){
-                legalArc = testArcs.arcs[1];
-            } else if (isLegalArc(g, testArcs.arcs[2])){
-                legalArc = testArcs.arcs[2];
-            } else if (isLegalArc(g, testArcs.arcs[3])){
-                legalArc = testArcs.arcs[3];
+            i = 0;
+            while (i < testArcs.amountOfArcs) {
+                if (isLegalArc(g, testArcs.arcs[i]) &&
+                    arcsAreEqual(legalArc, illegalArc())) {
+                    legalArc = testArcs.arcs[i];
+                }
+                i++;
             }
+            
             arcCount++;
         }
-        
-        return legalArc;
-    } else {
-        return illegalArc();
     }
-}
     
+    return legalArc;
+}
+
 static arcs arcsAroundVertex(vertex v) {
     arc a;
     arc b;
@@ -277,10 +307,30 @@ static arcs arcsAroundVertex(vertex v) {
 
 static arcs arcsAroundArc(arc a) {
     arcs arr;
+    vertices arcVertices;
+    int i;
+    int j;
+    arcs tempArr;
     
+    arcVertices = verticesAroundArc(a);
     
+    i = 0;
+    while (i < arcVertices.amountOfVertices) {
+        tempArr = arcsAroundVertex(arcVertices.vertices[i]);
+        
+        j = 0;
+        while (j < tempArr.amountOfArcs) {
+            if (!arcsAreEqual(tempArr.arcs[i], a)) {
+                arr.arcs[arr.amountOfArcs] = tempArr.arcs[i];
+                arr.amountOfArcs++;
+            }
+            j++;
+        }
+        
+        i++;
+    }
     
-    arr.amountOfArcs = 4;
+    assert(arr.amountOfArcs == 4);
     
     return arr;
 }
@@ -290,7 +340,7 @@ static vertices verticesAroundVertex(vertex v) {
     
     
     
-    arr.amountOfvertices = 3;
+    arr.amountOfVertices = 3;
     
     return arr;
 }
@@ -300,40 +350,63 @@ static vertices verticesAroundArc(arc a) {
     
     
     
-    arr.amountOfvertices = 2;
+    arr.amountOfVertices = 2;
     
     return arr;
 }
     
 //Takes in 2 vertices, checks if they are equal.
 static int verticesAreEqual(vertex a, vertex b){
-    int stage0 = FALSE;
-    int stage1 = FALSE;
-    int stage2 = FALSE;
     int result = FALSE;
     
-    if(regionsAreEqual(a.region0, b.region0) ||
-       regionsAreEqual(a.region0, b.region1) ||
-       regionsAreEqual(a.region0, b.region2)) {
-        //Then one of the regions is equivalent to one of the others
-        stage0 = TRUE;
-    }
-    if(regionsAreEqual(a.region1, b.region0) ||
-       regionsAreEqual(a.region1, b.region1) ||
-       regionsAreEqual(a.region1, b.region2)) {
-        //Then one of the regions is equivalent to one of the others
-        stage1 = TRUE;
-    }
-    if(regionsAreEqual(a.region2, b.region0) ||
-       regionsAreEqual(a.region2, b.region1) ||
-       regionsAreEqual(a.region2, b.region2)) {
-        //Then one of the regions is equivalent to one of the others
-        stage2 = TRUE;
-    }
-    
-    //If all three regions are equivalent, then the vertex is equivalent
-    if(stage0 == TRUE && stage1 == TRUE && stage2 == TRUE){
-        result = TRUE;
+    if (regionsAreEqual(a.region0, b.region0)) {
+        if (regionsAreEqual(a.region1, b.region1)) {
+            if (regionsAreEqual(a.region2, b.region2)) { // 0=0, 1=1, 2=2
+                result = TRUE;
+            } else {
+                result = FALSE;
+            }
+        } else if (regionsAreEqual(a.region1, b.region2)) {
+            if (regionsAreEqual(a.region2, b.region1)) { // 0=0, 1=2, 2=1
+                result = TRUE;
+            } else {
+                result = FALSE;
+            }
+        } else {
+            result = FALSE;
+        }
+    }  else if (regionsAreEqual(a.region0, b.region1)) {
+        if (regionsAreEqual(a.region1, b.region0)) {
+            if (regionsAreEqual(a.region2, b.region2)) { // 0=1, 1=0, 2=2
+                result = TRUE;
+            } else {
+                result = FALSE;
+            }
+        } else if (regionsAreEqual(a.region1, b.region2)) {
+            if (regionsAreEqual(a.region2, b.region0)) { // 0=1, 1=2, 2=0
+                result = TRUE;
+            } else {
+                result = FALSE;
+            }
+        } else {
+            result = FALSE;
+        }
+    } else if (regionsAreEqual(a.region0, b.region2)) {
+        if (regionsAreEqual(a.region1, b.region0)) {
+            if (regionsAreEqual(a.region2, b.region1)) { // 0=2, 1=0, 2=1
+                result = TRUE;
+            } else {
+                result = FALSE;
+            }
+        } else if (regionsAreEqual(a.region1, b.region1)) {
+            if (regionsAreEqual(a.region2, b.region0)) { // 0=2, 1=1, 2=0
+                result = TRUE;
+            } else {
+                result = FALSE;
+            }
+        } else {
+            result = FALSE;
+        }
     } else {
         result = FALSE;
     }
@@ -393,39 +466,20 @@ static arc illegalArc(void) {
 static int isLegalVertex(Game g, vertex v) {
     int isLegal;
     
-    int isOnBoard;
-    int exists;
     int hasAdjacentCampus;
     int hasAdjacentArc;
-    int hasDistinctRegions;
     
     vertices adjacentVertices;
     arcs adjacentArcs;
     
     int i;
     
-    if (!isSea(g, v.region0) &&
-        !isSea(g, v.region1) &&
-        !isSea(g, v.region2)) {
-        isOnBoard = TRUE;
-    } else {
-        isOnBoard = FALSE;
-    }
-    
-    if (regionsAreAdjacent(v.region0, v.region1) &&
-        regionsAreAdjacent(v.region0, v.region2) &&
-        regionsAreAdjacent(v.region1, v.region2)) {
-        exists = TRUE;
-    } else {
-        exists = FALSE;
-    }
-    
     adjacentVertices = verticesAroundVertex(v);
     
     hasAdjacentCampus = FALSE;
     
     i = 0;
-    while (i < adjacentVertices.amountOfvertices) {
+    while (i < adjacentVertices.amountOfVertices) {
         
         if ((getCampus(g, adjacentVertices.vertices[i]) != VACANT_VERTEX)) {
             
@@ -449,15 +503,7 @@ static int isLegalVertex(Game g, vertex v) {
         i++;
     }
     
-    if (!regionsAreEqual(v.region0, v.region1) &&
-        !regionsAreEqual(v.region1, v.region2) &&
-        !regionsAreEqual(v.region2, v.region0)) {
-        hasDistinctRegions = TRUE;
-    } else {
-        hasDistinctRegions = FALSE;
-    }
-    
-    isLegal = exists && isOnBoard && hasAdjacentArc && !hasAdjacentCampus && hasDistinctRegions;
+    isLegal = isRealVertex(g, v) && hasAdjacentArc && !hasAdjacentCampus;
     
     return isLegal;
 }
@@ -465,27 +511,11 @@ static int isLegalVertex(Game g, vertex v) {
 static int isLegalArc(Game g, arc a) {
     int isLegal;
     
-    int isOnBoard;
-    int exists;
     int hasAdjacentArc;
-    int hasDistinctRegions;
     
     arcs adjacentArcs;
     
     int i;
-    
-    if (!isSea(g, a.region0) &&
-        !isSea(g, a.region1)) {
-        isOnBoard = TRUE;
-    } else {
-        isOnBoard = FALSE;
-    }
-    
-    if (regionsAreAdjacent(a.region0, a.region1)) {
-        exists = TRUE;
-    } else {
-        exists = FALSE;
-    }
     
     adjacentArcs = arcsAroundArc(a);
     hasAdjacentArc = FALSE;
@@ -500,11 +530,72 @@ static int isLegalArc(Game g, arc a) {
         i++;
     }
     
-    hasDistinctRegions = !regionsAreEqual(a.region0, a.region1);
-    
-    isLegal = isOnBoard && exists && hasAdjacentArc && hasDistinctRegions;
+    isLegal = isRealArc(g, a) && hasAdjacentArc;
     
     return isLegal;
+}
+
+static int isRealVertex(Game g, vertex v) {
+    int isReal;
+    
+    int isOnBoard;
+    int exists;
+    int hasDistinctRegions;
+    
+    if (isSea(g, v.region0) &&
+        isSea(g, v.region1) &&
+        isSea(g, v.region2)) {
+        isOnBoard = FALSE;
+    } else {
+        isOnBoard = TRUE;
+    }
+    
+    if (regionsAreAdjacent(v.region0, v.region1) &&
+        regionsAreAdjacent(v.region0, v.region2) &&
+        regionsAreAdjacent(v.region1, v.region2)) {
+        exists = TRUE;
+    } else {
+        exists = FALSE;
+    }
+    
+    if (!regionsAreEqual(v.region0, v.region1) &&
+        !regionsAreEqual(v.region1, v.region2) &&
+        !regionsAreEqual(v.region2, v.region0)) {
+        hasDistinctRegions = TRUE;
+    } else {
+        hasDistinctRegions = FALSE;
+    }
+    
+    isReal = exists && isOnBoard && hasDistinctRegions;
+    
+    return isReal;
+}
+
+static int isRealArc(Game g, arc a) {
+    int isReal;
+    
+    int isOnBoard;
+    int exists;
+    int hasDistinctRegions;
+    
+    if (!isSea(g, a.region0) &&
+        !isSea(g, a.region1)) {
+        isOnBoard = TRUE;
+    } else {
+        isOnBoard = FALSE;
+    }
+    
+    if (regionsAreAdjacent(a.region0, a.region1)) {
+        exists = TRUE;
+    } else {
+        exists = FALSE;
+    }
+    
+    hasDistinctRegions = !regionsAreEqual(a.region0, a.region1);
+    
+    isReal = isOnBoard && exists && hasDistinctRegions;
+    
+    return isReal;
 }
 
 static arcs ownedArcs(Game g, uni me) {
@@ -533,12 +624,12 @@ static arcs ownedArcs(Game g, uni me) {
                         j++;
                     }
                     
-                    if (isLegalArc(g, a) && !alreadyCounted) {
-                        if (getARC(g, a) == me+1) {
-                            printf("arc found: (%d, %d), (%d, %d)\n", a.region0.x, a.region0.y, a.region1.x, a.region1.y);
-                            result.arcs[result.amountOfArcs] = a;
-                            result.amountOfArcs++;
-                        }
+                    if (getARC(g, a) == me+1 &&
+                        isRealArc(g, a) &&
+                        !alreadyCounted) {
+                        printf("arc found: (%d, %d), (%d, %d)\n", a.region0.x, a.region0.y, a.region1.x, a.region1.y);
+                        result.arcs[result.amountOfArcs] = a;
+                        result.amountOfArcs++;
                     }
                     
                     a.region1.y++;
@@ -553,7 +644,6 @@ static arcs ownedArcs(Game g, uni me) {
         a.region0.x++;
     }
     
-    printf("amount found: %d\nactual amount: %d\n", result.amountOfArcs, getARCs(g, me));
     assert(getARCs(g, me) == result.amountOfArcs);
     
     return result;
@@ -561,6 +651,70 @@ static arcs ownedArcs(Game g, uni me) {
 
 static vertices ownedCampuses(Game g, uni me) {
     vertices result;
+    vertex v;
+    int j;
+    int alreadyCounted;
+    
+    v.region0.x = MIN_COORD;
+    v.region0.y = MIN_COORD;
+    v.region1.x = MIN_COORD;
+    v.region1.y = MIN_COORD;
+    v.region2.x = MIN_COORD;
+    v.region2.y = MIN_COORD;
+
+    vertex testVertex;
+    testVertex.region0.x = 0;
+    testVertex.region0.y = 3;
+    testVertex.region1.x = -1;
+    testVertex.region1.y = 3;
+    testVertex.region2.x = 0;
+    testVertex.region2.y = 2;
+    
+    while (v.region0.x <= MAX_COORD) {
+        while (v.region0.y <= MAX_COORD) {
+            while (v.region1.x <= MAX_COORD) {
+                while (v.region1.y <= MAX_COORD) {
+                    while (v.region2.x <= MAX_COORD) {
+                        while (v.region2.y <= MAX_COORD) {
+                            
+                            if ((getCampus(g, v) == me+1 ||
+                                getCampus(g, v) == me+4) &&
+                                isRealVertex(g, v)) {
+                                
+                                j = 0;
+                                alreadyCounted = FALSE;
+                                while (j < result.amountOfVertices) {
+                                    if (verticesAreEqual(result.vertices[j], v)) {
+                                        alreadyCounted = TRUE;
+                                    }
+                                    j++;
+                                }
+                                
+                                if (!alreadyCounted) {
+                                    result.vertices[result.amountOfVertices] = v;
+                                    result.amountOfVertices++;
+                                }
+                            }
+                            
+                            v.region2.y++;
+                        }
+                        v.region2.y = MIN_COORD;
+                        v.region2.x++;
+                    }
+                    v.region2.x = MIN_COORD;
+                    v.region1.y++;
+                }
+                v.region1.y = MIN_COORD;
+                v.region1.x++;
+            }
+            v.region1.x = MIN_COORD;
+            v.region0.y++;
+        }
+        v.region0.y = MIN_COORD;
+        v.region0.x++;
+    }
+    
+    assert(getCampuses(g, me) == result.amountOfVertices);
     
     return result;
 }
@@ -726,6 +880,8 @@ static int canAfford(Game g, int actionCode) {
     } else {
         canAfford = FALSE;
     }
+    
+    printf("code: %d, can afford? %d\n", actionCode, canAfford);
     
     return canAfford;
 }

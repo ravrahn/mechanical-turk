@@ -32,9 +32,10 @@ int main(int argc, const char * argv[]) {
     Game g = newGame(degree, dice);
     
     throwDice(g, 6);
-    throwDice(g, 6);
     
-    bestMove(g);
+    action a = bestMove(g);
+    
+    printf("actionCode: %d\n", a.actionCode);
     
     printf("all tests passed!");
     return EXIT_SUCCESS;
