@@ -16,12 +16,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "Game.h"
+#include <assert.h>
 #include "mechanicalTurk.h"
 
 #define MAX_ARCS 100
 #define MAX_CAMPUSES 100
 #define MAX_VERTICES 100
+
+#define MIN_COORD -4
+#define MAX_COORD 4
+
+#define TOTAL_ARCS 62
 
 #define TRUE 1
 #define FALSE 0
@@ -114,6 +119,8 @@ action bestMove(Game g) {
     action bestMove;
     
     bestMove = chooseAction(g);
+    
+    ownedArcs(g, getTurnNumber(g));
     
     return bestMove;
 }
@@ -390,6 +397,7 @@ static int isLegalVertex(Game g, vertex v) {
     int exists;
     int hasAdjacentCampus;
     int hasAdjacentArc;
+    int hasDistinctRegions;
     
     vertices adjacentVertices;
     arcs adjacentArcs;
@@ -441,7 +449,15 @@ static int isLegalVertex(Game g, vertex v) {
         i++;
     }
     
-    isLegal = exists && isOnBoard && hasAdjacentArc && !hasAdjacentCampus;
+    if (!regionsAreEqual(v.region0, v.region1) &&
+        !regionsAreEqual(v.region1, v.region2) &&
+        !regionsAreEqual(v.region2, v.region0)) {
+        hasDistinctRegions = TRUE;
+    } else {
+        hasDistinctRegions = FALSE;
+    }
+    
+    isLegal = exists && isOnBoard && hasAdjacentArc && !hasAdjacentCampus && hasDistinctRegions;
     
     return isLegal;
 }
@@ -452,6 +468,7 @@ static int isLegalArc(Game g, arc a) {
     int isOnBoard;
     int exists;
     int hasAdjacentArc;
+    int hasDistinctRegions;
     
     arcs adjacentArcs;
     
@@ -483,13 +500,61 @@ static int isLegalArc(Game g, arc a) {
         i++;
     }
     
-    isLegal = isOnBoard && exists && hasAdjacentArc;
+    hasDistinctRegions = !regionsAreEqual(a.region0, a.region1);
+    
+    isLegal = isOnBoard && exists && hasAdjacentArc && hasDistinctRegions;
     
     return isLegal;
 }
 
 static arcs ownedArcs(Game g, uni me) {
     arcs result;
+    arc a;
+    int j;
+    int alreadyCounted;
+    
+    a.region0.x = MIN_COORD;
+    a.region0.y = MIN_COORD;
+    a.region1.x = MIN_COORD;
+    a.region1.y = MIN_COORD;
+    
+    result.amountOfArcs = 0;
+    while (a.region0.x <= MAX_COORD) {
+        while (a.region0.y <= MAX_COORD) {
+            while (a.region1.x <= MAX_COORD) {
+                while (a.region1.y <= MAX_COORD) {
+                    
+                    j = 0;
+                    alreadyCounted = FALSE;
+                    while (j < result.amountOfArcs) {
+                        if (arcsAreEqual(result.arcs[j], a)) {
+                            alreadyCounted = TRUE;
+                        }
+                        j++;
+                    }
+                    
+                    if (isLegalArc(g, a) && !alreadyCounted) {
+                        if (getARC(g, a) == me+1) {
+                            printf("arc found: (%d, %d), (%d, %d)\n", a.region0.x, a.region0.y, a.region1.x, a.region1.y);
+                            result.arcs[result.amountOfArcs] = a;
+                            result.amountOfArcs++;
+                        }
+                    }
+                    
+                    a.region1.y++;
+                }
+                a.region1.y = MIN_COORD;
+                a.region1.x++;
+            }
+            a.region1.x = MIN_COORD;
+            a.region0.y++;
+        }
+        a.region0.y = MIN_COORD;
+        a.region0.x++;
+    }
+    
+    printf("amount found: %d\nactual amount: %d\n", result.amountOfArcs, getARCs(g, me));
+    assert(getARCs(g, me) == result.amountOfArcs);
     
     return result;
 }
