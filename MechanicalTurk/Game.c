@@ -151,9 +151,6 @@ Game newGame (int degree[], int dice[]) {
         currentUniversity++;
     }
     
-    g->unis[0].studentCount[STUDENT_BQN] = 1;
-    g->unis[0].studentCount[STUDENT_BPS] = 1;
-    
     return g;
 }
 
