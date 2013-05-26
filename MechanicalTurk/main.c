@@ -35,7 +35,33 @@ int main(int argc, const char * argv[]) {
     
     action a = bestMove(g);
     
-    printf("actionCode: %d\n", a.actionCode);
+    makeAction(g, a);
+    
+    throwDice(g, 6);
+    throwDice(g, 6);
+    throwDice(g, 6);
+    
+    a = bestMove(g);
+    
+    throwDice(g, 6);
+    throwDice(g, 6);
+    throwDice(g, 6);
+    
+    a = bestMove(g);
+    
+    throwDice(g, 6);
+    throwDice(g, 6);
+    throwDice(g, 6);
+    
+    a = bestMove(g);
+    
+    throwDice(g, 6);
+    throwDice(g, 6);
+    throwDice(g, 6);
+    
+    a = bestMove(g);
+    
+    printf("kpi: %d\n", getKPIpoints(g, 0));
     
     printf("all tests passed!");
     return EXIT_SUCCESS;

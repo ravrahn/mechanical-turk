@@ -157,6 +157,35 @@ static vertex leftVertexFromRegion(region r);
 static vertices getAllVertices(Game g);
 
 
+// Returns an arc based on a region:
+//   ____
+//  /    \
+// /  r0  \
+// \  in  /
+//  \____/
+//   ----
+static arc bottomArcFromRegion(region r);
+
+// Returns an arc based on a region:
+//   ____
+//  /    \\
+// /  r0  \\
+// \  in  /
+//  \____/
+static arc rightTopArcFromRegion(region r);
+
+// Returns an arc based on a region:
+//   ____
+//  /    \
+// /  r0  \
+// \  in  //
+//  \____//
+static arc rightBottomArcFromRegion(region r);
+
+// Returns an array of all legal arcs.
+static arcs getAllArcs(Game g);
+
+
 action bestMove(Game g) {
     action bestMove;
     
@@ -174,6 +203,8 @@ static action chooseAction(Game g){
     vertex chosenGO8;
     
     chosenGO8 = chooseGO8(g);
+    
+    printf("I chose (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
     
     if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
        canAfford(g, BUILD_GO8)){
@@ -194,9 +225,9 @@ static action chooseAction(Game g){
             
         } else {
             if(canAfford(g, START_SPINOFF)){
-        
+                    
                 legalAction.actionCode = START_SPINOFF;
-                
+                    
             } else {
                 chosenArc = chooseArc(g);
                 
@@ -204,8 +235,6 @@ static action chooseAction(Game g){
                 
                 if(canAfford(g, CREATE_ARC) &&
                    !arcsAreEqual(chosenArc, illegalArc())){
-                
-                    
                     
                     legalAction.actionCode = CREATE_ARC;
                     legalAction.targetARC = chooseArc(g);
@@ -219,13 +248,15 @@ static action chooseAction(Game g){
         }
     }
     
+    printf("I'm playing %d\n", legalAction.actionCode);
+    
     return legalAction;
 }
 
 static vertex chooseGO8(Game g){
     vertex legalVertex = illegalVertex();
     vertex testVertex;
-    uni me = getTurnNumber(g);
+    uni me = getTurnNumber(g) % 3;
     
     //Region Coordinates lie between -2 and 2.
     if (canAfford(g, BUILD_GO8)){
@@ -240,7 +271,7 @@ static vertex chooseGO8(Game g){
 static vertex chooseCampus(Game g){
     vertex legalVertex = illegalVertex();
     vertices testVertices;
-    uni me = getTurnNumber(g);
+    uni me = getTurnNumber(g) % 3;
     
     //Region Coordinates lie between -2 and 2.
     if (canAfford(g, BUILD_CAMPUS)){
@@ -266,7 +297,7 @@ static vertex chooseCampus(Game g){
 
 static arc chooseArc(Game g) {
     arc legalArc = illegalArc();
-    uni me = getTurnNumber(g);
+    uni me = getTurnNumber(g) % 3;
     arcs testArcs;
     arcs mArcs;
     vertices mCampuses;
@@ -697,7 +728,7 @@ static int isLegalVertex(Game g, vertex v) {
     i = 0;
     while (i < adjacentArcs.amountOfArcs) {
         
-        if ((getARC(g, adjacentArcs.arcs[i]) == getTurnNumber(g) + 1)) {
+        if ((getARC(g, adjacentArcs.arcs[i]) == (getTurnNumber(g)%3) + 1)) {
                 hasAdjacentArc = TRUE;
             }
         
@@ -718,7 +749,7 @@ static int isLegalArc(Game g, arc a) {
     arcs adjacentArcs;
     vertices adjacentVertices;
     
-    uni me = getTurnNumber(g);
+    uni me = getTurnNumber(g) % 3;
     
     int i;
     
@@ -744,7 +775,7 @@ static int isLegalArc(Game g, arc a) {
     i = 0;
     while (i < adjacentArcs.amountOfArcs) {
         
-        if ((getARC(g, adjacentArcs.arcs[i]) == getTurnNumber(g) + 1)) {
+        if ((getARC(g, adjacentArcs.arcs[i]) == (getTurnNumber(g)%3) + 1)) {
             hasAdjacentArc = TRUE;
         }
         
@@ -821,48 +852,37 @@ static int isRealArc(Game g, arc a) {
 
 static arcs ownedArcs(Game g, uni me) {
     arcs result;
-    arc a;
+    arcs allArcs;
+    int i;
     int j;
     int alreadyCounted;
     
-    a.region0.x = MIN_COORD;
-    a.region0.y = MIN_COORD;
-    a.region1.x = MIN_COORD;
-    a.region1.y = MIN_COORD;
-    
     result.amountOfArcs = 0;
-    while (a.region0.x <= MAX_COORD) {
-        while (a.region0.y <= MAX_COORD) {
-            while (a.region1.x <= MAX_COORD) {
-                while (a.region1.y <= MAX_COORD) {
-                    
-                    j = 0;
-                    alreadyCounted = FALSE;
-                    while (j < result.amountOfArcs) {
-                        if (arcsAreEqual(result.arcs[j], a)) {
-                            alreadyCounted = TRUE;
-                        }
-                        j++;
-                    }
-                    
-                    if (getARC(g, a) == me+1 &&
-                        isRealArc(g, a) &&
-                        !alreadyCounted) {
-                        printf("arc found: (%d, %d), (%d, %d)\n", a.region0.x, a.region0.y, a.region1.x, a.region1.y);
-                        result.arcs[result.amountOfArcs] = a;
-                        result.amountOfArcs++;
-                    }
-                    
-                    a.region1.y++;
+    allArcs = getAllArcs(g);
+    
+    i = 0;
+    while (i < allArcs.amountOfArcs) {
+        
+        if (getARC(g, allArcs.arcs[i]) == me+1 &&
+            isRealArc(g, allArcs.arcs[i])) {
+            
+            j = 0;
+            alreadyCounted = FALSE;
+            while (j < result.amountOfArcs) {
+                if (arcsAreEqual(result.arcs[j], allArcs.arcs[i])) {
+                    alreadyCounted = TRUE;
                 }
-                a.region1.y = MIN_COORD;
-                a.region1.x++;
+                j++;
             }
-            a.region1.x = MIN_COORD;
-            a.region0.y++;
+            
+            if (!alreadyCounted) {
+                result.arcs[result.amountOfArcs] = allArcs.arcs[i];
+                result.amountOfArcs++;
+            }
+            
         }
-        a.region0.y = MIN_COORD;
-        a.region0.x++;
+        
+        i++;
     }
     
     assert(getARCs(g, me) == result.amountOfArcs);
@@ -1024,7 +1044,7 @@ static int canAfford(Game g, int actionCode) {
     int canAfford;
     uni me;
     
-    me = getTurnNumber(g);
+    me = getTurnNumber(g) % 3;
     
     if (actionCode == BUILD_CAMPUS) {
         
@@ -1068,8 +1088,6 @@ static int canAfford(Game g, int actionCode) {
     } else {
         canAfford = FALSE;
     }
-    
-    printf("code: %d, can afford? %d\n", actionCode, canAfford);
     
     return canAfford;
 }
@@ -1140,6 +1158,83 @@ static vertices getAllVertices(Game g) {
             if (isRealVertex(g, tempVertex)) {
                 result.vertices[result.amountOfVertices] = tempVertex;
                 result.amountOfVertices++;
+            }
+            y++;
+        }
+        x++;
+    }
+    return result;
+}
+
+static arc bottomArcFromRegion(region r) {
+    arc a;
+    region r1;
+    
+    r1.x = r.x;
+    r1.y = r.y - 1;
+    
+    a.region0 = r;
+    a.region1 = r1;
+    
+    return a;
+}
+
+static arc rightTopArcFromRegion(region r) {
+    arc a;
+    region r1;
+    
+    r1.x = r.x + 1;
+    r1.y = r.y;
+    
+    a.region0 = r;
+    a.region1 = r1;
+    
+    return a;
+}
+
+static arc rightBottomArcFromRegion(region r) {
+    arc a;
+    region r1;
+    
+    r1.x = r.x + 1;
+    r1.y = r.y - 1;
+    
+    a.region0 = r;
+    a.region1 = r1;
+    
+    return a;
+}
+
+static arcs getAllArcs(Game g) {
+    int x;
+    int y;
+    region r;
+    arcs result;
+    arc tempArc;
+    
+    x = MIN_COORD;
+    while (x <= MAX_COORD) {
+        y = MIN_COORD;
+        while (y <= MAX_COORD) {
+            r.x = x;
+            r.y = y;
+            
+            tempArc = bottomArcFromRegion(r);
+            if (isRealArc(g, tempArc)) {
+                result.arcs[result.amountOfArcs] = tempArc;
+                result.amountOfArcs++;
+            }
+            
+            tempArc = rightTopArcFromRegion(r);
+            if (isRealArc(g, tempArc)) {
+                result.arcs[result.amountOfArcs] = tempArc;
+                result.amountOfArcs++;
+            }
+            
+            tempArc = rightBottomArcFromRegion(r);
+            if (isRealArc(g, tempArc)) {
+                result.arcs[result.amountOfArcs] = tempArc;
+                result.amountOfArcs++;
             }
             y++;
         }
