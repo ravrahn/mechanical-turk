@@ -28,6 +28,10 @@
 #define TRUE 1
 #define FALSE 0
 
+#define HORIZONTAL 0
+#define FORWARDS 1
+#define BACKWARDS 2
+
 typedef struct _arcs {
     arc arcs[MAX_ARCS];
     int amountOfArcs;
@@ -86,6 +90,8 @@ static int arcsAreEqual(arc a, arc b);
 // Checks if two regions are equal.
 static int regionsAreEqual(region a, region b);
 
+// Checks if two regions are adjacent.
+static int regionsAreAdjacent(region a, region b);
 
 // Returns an impossible vertex
 static vertex illegalVertex(void);
@@ -112,11 +118,17 @@ static arcs ownedArcs(Game g, uni me);
 // Returns an array of all campuses owned by a given player.
 static vertices ownedCampuses(Game g, uni me);
 
-// Checks if two regions are adjacent.
-static int regionsAreAdjacent(region a, region b);
 
-// Checks if player has resources to perform an action
+// Checks if player has resources to perform an action.
 static int canAfford(Game g, int actionCode);
+
+
+// Returns which way an arc is facing.
+// / - FORWARDS
+// \ - BACKWARDS
+// - - HORIZONTAL
+static int whichWay(arc a);
+
 
 action bestMove(Game g) {
     action bestMove;
@@ -307,30 +319,109 @@ static arcs arcsAroundVertex(vertex v) {
 
 static arcs arcsAroundArc(arc a) {
     arcs arr;
-    vertices arcVertices;
-    int i;
-    int j;
-    arcs tempArr;
     
-    arcVertices = verticesAroundArc(a);
+    region r0;
+    region r1;
+    region r2;
+    region r3;
     
-    i = 0;
-    while (i < arcVertices.amountOfVertices) {
-        tempArr = arcsAroundVertex(arcVertices.vertices[i]);
-        
-        j = 0;
-        while (j < tempArr.amountOfArcs) {
-            if (!arcsAreEqual(tempArr.arcs[i], a)) {
-                arr.arcs[arr.amountOfArcs] = tempArr.arcs[i];
-                arr.amountOfArcs++;
-            }
-            j++;
+    arc a1;
+    arc a2;
+    arc a3;
+    arc a4;
+    
+    int facing;
+    
+    
+    facing = whichWay(a);
+    
+    if (facing == HORIZONTAL) {
+        if (a.region0.x > a.region1.x) {
+            r1 = a.region0;
+            r2 = a.region1;
+        } else {
+            r1 = a.region1;
+            r2 = a.region0;
         }
         
-        i++;
+        r0 = r1;
+        r0.y -= 1;
+        
+        r3 = r2;
+        r3.y += 1;
+        
+        a1.region0 = r0;
+        a1.region1 = r1;
+        
+        a2.region0 = r0;
+        a2.region1 = r2;
+        
+        a3.region0 = r1;
+        a3.region0 = r3;
+        
+        a4.region0 = r2;
+        a4.region1 = r3;
+        
+    } else if (facing == FORWARDS) {
+        if (a.region0.x > a.region1.x) {
+            r0 = a.region0;
+            r3 = a.region1;
+        } else {
+            r0 = a.region1;
+            r3 = a.region0;
+        }
+        
+        r1 = r0;
+        r1.y += 1;
+        
+        r2 = r3;
+        r2.y -= 1;
+        
+        a1.region0 = r0;
+        a1.region1 = r2;
+        
+        a2.region0 = r3;
+        a2.region1 = r2;
+        
+        a3.region0 = r0;
+        a3.region1 = r1;
+        
+        a4.region0 = r1;
+        a4.region0 = r3;
+        
+    } else if (facing == BACKWARDS) {
+        if (a.region0.y < a.region1.y) {
+            r1 = a.region0;
+            r2 = a.region1;
+        } else {
+            r1 = a.region1;
+            r2 = a.region0;
+        }
+        r0 = r1;
+        r0.x += 1;
+        
+        r3 = r2;
+        r3.x -= 1;
+        
+        a1.region0 = r0;
+        a1.region1 = r1;
+        
+        a2.region0 = r1;
+        a2.region1 = r3;
+        
+        a3.region0 = r2;
+        a3.region1 = r3;
+        
+        a4.region0 = r0;
+        a4.region1 = r2;
     }
     
-    assert(arr.amountOfArcs == 4);
+    arr.arcs[0] = a1;
+    arr.arcs[1] = a2;
+    arr.arcs[2] = a3;
+    arr.arcs[3] = a4;
+    
+    arr.amountOfArcs = 4;
     
     return arr;
 }
@@ -884,4 +975,18 @@ static int canAfford(Game g, int actionCode) {
     printf("code: %d, can afford? %d\n", actionCode, canAfford);
     
     return canAfford;
+}
+
+static int whichWay(arc a) {
+    int facing;
+    
+    if (a.region0.y == a.region1.y) {
+        facing = HORIZONTAL;
+    } else if (a.region0.x == a.region1.x) {
+        facing = BACKWARDS;
+    } else {
+        facing = FORWARDS;
+    }
+    
+    return facing;
 }
