@@ -526,7 +526,8 @@ static spatialInfo retriveInfo(Game g){
     spatialInfo gameInfo;
     
     //Retrieves all of the dice values and degree types for each of the
-    //tiles and stores them in the spatialInfo struct.
+    //tiles and stores them in the spatialInfo struct. This achieved by
+    //scanning in all of the regions using the Game.c getters.
     region testRegion;
     testRegion.y = -3;
     
@@ -538,10 +539,10 @@ static spatialInfo retriveInfo(Game g){
                 gameInfo.regionDiceValues[regionCount] = getDiceValue(g, testRegion);
                 gameInfo.regionDegreeTypes[regionCount] = getDegree(g, testRegion);
                 testRegion.x++;
+                regionCount++;
             }
             testRegion.y++;
         }
-        regionCount++;
     }
     
     //Tests all of the verticies on the board and stores campus locations
@@ -552,6 +553,7 @@ static spatialInfo retriveInfo(Game g){
     
     arc testArc;
     region adjacentTestRegion;
+    //Counters so we can keep track of the index of each campus or arc.
     int arcCountA = 0;
     int arcCountB = 0;
     int arcCountC = 0;
@@ -559,6 +561,10 @@ static spatialInfo retriveInfo(Game g){
     int vertexCountB = 0;
     int vertexCountC = 0;
     
+    //Scans through the regions in pairs to test for arc grants on these
+    //locations and then uses these adjacent regions with
+    //verticesAroundArc to test all of the vertices on the map for campuses.
+    //All of this data is save into the spatialInfo struct.
     while(testRegion.x <= 3){
         testRegion.y = 3;
         while(testRegion.y >= -3){
@@ -569,6 +575,9 @@ static spatialInfo retriveInfo(Game g){
             testArc.region0 = testRegion;
             testArc.region1 = adjacentTestRegion;
             
+            //This is only testing the hortizontal arcs at the moment and
+            //needs to be adjusted to test every arc. I will use
+            //arcsAroundArc to do this [D.P].
             int playersArc = getARC(g, testArc);
             if(playersArc == UNI_A){
                 gameInfo.arcLocations[UNI_A][arcCountA] = testArc;
