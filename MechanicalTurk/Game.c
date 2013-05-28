@@ -25,6 +25,8 @@
 #define MAX_CAMPUSES 100
 #define MAX_GO8S 8
 
+#define DEFAULT_NUM_GO8S 0
+#define DEFAULT_NUM_ARCS 0
 #define DEFAULT_NUM_CAMPUSES 2
 #define LEFT_SEA_BOUNDRY -3
 #define RIGHT_SEA_BOUNDRY 3
@@ -133,7 +135,8 @@ Game newGame (int degree[], int dice[]) {
     int currentUniversity = UNI_A;
     while(currentUniversity < NUM_UNIS){
         g->numberOfCampuses[currentUniversity] = DEFAULT_NUM_CAMPUSES; //Set to default campuses
-        g->numberOfArcs[currentUniversity] = DEFAULT_NUM_CAMPUSES;
+        g->numberOfArcs[currentUniversity] = DEFAULT_NUM_ARCS;
+        g->numberOfGO8[currentUniversity] = DEFAULT_NUM_GO8S;
         
         if(currentUniversity == UNI_A){
             //Put the first 2 campuses for player A down in the default places
@@ -147,6 +150,10 @@ Game newGame (int degree[], int dice[]) {
         }
         currentUniversity++;
     }
+    
+    g->unis[0].studentCount[STUDENT_BQN] += 2;
+    g->unis[0].studentCount[STUDENT_BPS] += 2;
+    
     return g;
 }
 
@@ -258,7 +265,7 @@ void makeAction (Game g, action a) {
     } else if (a.actionCode == CREATE_ARC) {
         int nextARCIndex = getARCs(g, currentPlayer);
         
-        g->campuses[currentPlayer][nextARCIndex] = a.targetVertex;
+        g->arcGrants[currentPlayer][nextARCIndex] = a.targetARC;
         g->numberOfArcs[currentPlayer]++;
         
         g->unis[currentPlayer].studentCount[STUDENT_BQN]--;
@@ -292,7 +299,7 @@ void makeAction (Game g, action a) {
 
 
 /* **** Functions which GET data about the Game aka GETTERS **** */
-
+//isSea
 // true if the region is not one of the land regions of knowledge island
 int isSea (Game g, region r) {
     int sea;
@@ -331,7 +338,7 @@ int isSea (Game g, region r) {
 // before the Game has started.
 // It is not legal for a player to make the moves OBTAIN_PUBLICATION
 // or OBTAIN_IP_PATENT (they can make the move START_SPINOFF)
-//
+//isLegalAction
 int isLegalAction (Game g, action a) {
     //Legality booleans (maybe change these to chars if memory is tight):
     int legalAction;
@@ -368,6 +375,7 @@ int isLegalAction (Game g, action a) {
 }
 
 //===============CHECKS LEGALITY OF CAMPUS CONSTRUCTION===============//
+//islegalcampus
 static int isLegalCampus(Game g, action a){
     
     int player = getWhoseTurn(g);
@@ -861,7 +869,7 @@ uni getMostPublications (Game g) {
     return mostPublications;
 }
 
-
+//getTurnNumber
 // return the current turn number of the Game -1,0,1, ..
 int getTurnNumber (Game g) {
     return g->currentTurn;
@@ -897,13 +905,18 @@ uni getWhoseTurn (Game g) {
 int getCampus (Game g, vertex v) {
     int output = VACANT_VERTEX;
     int currentUniversity = UNI_A;
+    int currentVertex;
     
     while ((currentUniversity < NUM_UNIS) && (output == 0)) {
-        int currentVertex = 0;
-        while(currentVertex < g->numberOfCampuses[currentUniversity]){
-            if(verticesAreEqual(v, g->campuses[currentUniversity][currentVertex]))
-            {
-                output = currentUniversity;
+        currentVertex = 0;
+        while((currentVertex < g->numberOfCampuses[currentUniversity]) &&
+              (output == 0)){
+            if(verticesAreEqual(v, g->campuses[currentUniversity][currentVertex])){
+                output = currentUniversity + 1;
+            }
+            
+            if(verticesAreEqual(v, g->GO8campuses[currentUniversity][currentVertex])){
+                output = currentUniversity + 4;
             }
             currentVertex++;
         }
@@ -911,18 +924,21 @@ int getCampus (Game g, vertex v) {
     }
     return output;
 }
+
+
 //getARC
 // the contents of the given edge (ie ARC code or vacant ARC)
 int getARC (Game g, arc a) {
     int output = VACANT_ARC;
     int currentUniversity = UNI_A;
+    int currentEdge;
     
     
     while((currentUniversity < NUM_UNIS) && (output == 0)) {
-        int currentEdge = 0;
+        currentEdge = 0;
         while(currentEdge < g->numberOfArcs[currentUniversity]){
             if(arcsAreEqual(a, g->arcGrants[currentUniversity][currentEdge])) {
-                output = currentUniversity;
+                output = currentUniversity+1;
             }
             currentEdge++;
         }
@@ -949,6 +965,7 @@ int getGO8s (Game g, uni player) {
 int getCampuses (Game g, uni player) {
     return g->numberOfCampuses[player];
 }
+
 
 //getIPs
 // return the number of IP Patents the specified player currently has
@@ -999,7 +1016,7 @@ int getExchangeRate (Game g, uni player,
     //    exchangeRate = give / get;
     //
     //    return exchangeRate;
-    return 0;
+    return 3;
 }
 
 //getKPIpoints
@@ -1011,6 +1028,7 @@ int getKPIpoints (Game g, uni player){
     points = points + getARCs(g, player) * 2;
     points = points + getIPs (g, player) * 10;
     //Prestige Points
+    
     if(player == getMostARCs (g) ){
         points = points + 10;
     }

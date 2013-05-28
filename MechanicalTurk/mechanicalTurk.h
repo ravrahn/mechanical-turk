@@ -1,3 +1,3 @@
-//#include "Game.h"
-//
-//action bestMove (Game g);
+#include "Game.h"
+
+action bestMove (Game g);
