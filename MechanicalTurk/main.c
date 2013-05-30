@@ -31,37 +31,107 @@ int main(int argc, const char * argv[]) {
     
     Game g = newGame(degree, dice);
     
-    throwDice(g, 6);
+    throwDice(g, 1);
+    printf("Player %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
     
     action a = bestMove(g);
     
     makeAction(g, a);
     
-    throwDice(g, 6);
-    throwDice(g, 6);
-    throwDice(g, 6);
+    throwDice(g, 2);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
     
     a = bestMove(g);
     
-    throwDice(g, 6);
-    throwDice(g, 6);
-    throwDice(g, 6);
+    makeAction(g, a);
+    
+    
+    throwDice(g, 3);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
     
     a = bestMove(g);
     
-    throwDice(g, 6);
-    throwDice(g, 6);
-    throwDice(g, 6);
+    makeAction(g, a);
+    
+    
+    throwDice(g, 4);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
     
     a = bestMove(g);
     
-    throwDice(g, 6);
-    throwDice(g, 6);
-    throwDice(g, 6);
+    makeAction(g, a);
+    
+    throwDice(g, 5);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
     
     a = bestMove(g);
     
-    printf("kpi: %d\n", getKPIpoints(g, 0));
+    makeAction(g, a);
+    
+    
+    throwDice(g, 6);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    makeAction(g, a);
+    
+    throwDice(g, 7);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    makeAction(g, a);
+    
+    throwDice(g, 8);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    makeAction(g, a);
+    
+    
+    throwDice(g, 9);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    makeAction(g, a);
+    
+    
+    throwDice(g, 10);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    makeAction(g, a);
+    
+    throwDice(g, 11);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    makeAction(g, a);
+    
+    
+    throwDice(g, 12);
+    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    makeAction(g, a);
+    
+    int i=0;
+    while (i < 3) {
+        printf("\n==PLAYER %d SCORE==\n", i);
+        printf("     kpi: %d\n", getKPIpoints(g, i));
+        printf("    arcs: %d\n", getARCs(g, i));
+        printf("campuses: %d\n", getCampuses(g, i));
+        printf("    go8s: %d\n", getGO8s(g, i));
+        printf("    pubs: %d\n", getPublications(g, i));
+        printf("students: BPS:%d B?:%d MJ:%d M$:%d MTV:%d THD:%d\n", getStudents(g, i, STUDENT_BPS), getStudents(g, i, STUDENT_BQN), getStudents(g, i, STUDENT_MJ), getStudents(g, i, STUDENT_MMONEY), getStudents(g, i, STUDENT_MTV), getStudents(g, i, STUDENT_THD));
+        i++;
+    }
     
     printf("all tests passed!");
     return EXIT_SUCCESS;

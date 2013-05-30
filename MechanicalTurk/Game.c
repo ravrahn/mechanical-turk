@@ -1,15 +1,12 @@
-//EVERYONE - Get into chat right NOW! (click the speech bubble)
-
 // Please put FOUR spaces in a tab, not three
-// Also, recall that this was due ON SUNDAY.
+// Also, recall that this is due in 10 minutes!
 
 /*
  *  Game.c
- *  1917 2013 ver 0.0
- *  Add to and change this file as you wish to implement the
- *  interface functions in Game.h
+ *  1917 2013 ver 2.0
  *
  *  Created by Richard Buckland on 2/5/2013
+ *  Altered by Tues09Guan!
  *  Licensed under Creative Commons SA-BY-NC 3.0. *
  */
 
@@ -26,8 +23,8 @@
 #define MAX_GO8S 8
 
 #define DEFAULT_NUM_GO8S 0
-#define DEFAULT_NUM_ARCS 0
 #define DEFAULT_NUM_CAMPUSES 2
+#define DEFAULT_NUM_ARCS 0
 #define LEFT_SEA_BOUNDRY -3
 #define RIGHT_SEA_BOUNDRY 3
 #define TERRA_NULLIUS -1
@@ -134,9 +131,19 @@ Game newGame (int degree[], int dice[]) {
     //Goes through each player one by one and sets up their data.
     int currentUniversity = UNI_A;
     while(currentUniversity < NUM_UNIS){
-        g->numberOfCampuses[currentUniversity] = DEFAULT_NUM_CAMPUSES; //Set to default campuses
+        g->numberOfCampuses[currentUniversity] = DEFAULT_NUM_CAMPUSES;
         g->numberOfArcs[currentUniversity] = DEFAULT_NUM_ARCS;
         g->numberOfGO8[currentUniversity] = DEFAULT_NUM_GO8S;
+        
+        //STARTING RESOURCES:
+        //3 x BPS, 3 x B?, 1 x MTV, 1 x MJ, 1 x M$, and no ThDs.
+        
+        g->unis[currentUniversity].studentCount[STUDENT_BPS] = 3;
+        g->unis[currentUniversity].studentCount[STUDENT_BQN] = 3;
+        g->unis[currentUniversity].studentCount[STUDENT_MTV] = 1;
+        g->unis[currentUniversity].studentCount[STUDENT_MJ] = 1;
+        g->unis[currentUniversity].studentCount[STUDENT_MMONEY] = 1;
+        g->unis[currentUniversity].studentCount[STUDENT_THD] = 0;
         
         if(currentUniversity == UNI_A){
             //Put the first 2 campuses for player A down in the default places
@@ -150,10 +157,6 @@ Game newGame (int degree[], int dice[]) {
         }
         currentUniversity++;
     }
-    
-    g->unis[0].studentCount[STUDENT_BQN] += 2;
-    g->unis[0].studentCount[STUDENT_BPS] += 2;
-    
     return g;
 }
 
@@ -182,10 +185,10 @@ void throwDice (Game g, int diceScore) {
         i++;
     }
     
-    i = 0;
-    while (i < MAX_CAMPUSES) {
-        int player = 0;
-        while (player < NUM_UNIS) {
+    int player = 0;
+    while (player < NUM_UNIS) {
+        i = 0;
+        while(i < MAX_CAMPUSES){
             int j = 0;
             while (j < regions) {
                 if (vertexSharesRegion(g->campuses[player][i],
@@ -194,9 +197,9 @@ void throwDice (Game g, int diceScore) {
                 }
                 j++;
             }
-            player++;
+            i++;
         }
-        i++;
+        player++;
     }
     
     if (diceScore == 7) {
@@ -1024,7 +1027,7 @@ int getKPIpoints (Game g, uni player){
     int points = 0;
     //Buildings Points
     points = points + getCampuses(g, player) * 10;
-    points = points + getGO8s(g, player) * 20;
+    points = points + getGO8s(g,  player) * 20;
     points = points + getARCs(g, player) * 2;
     points = points + getIPs (g, player) * 10;
     //Prestige Points
@@ -1285,6 +1288,8 @@ static region newRegion(int x, int y) {
  } coordinate(0) ++;
  boundry = boundry+2;
  }*/
+
+
 
 
 

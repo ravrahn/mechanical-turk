@@ -7,7 +7,6 @@
 //
 
 /* TODO
- **** verticesAroundArc
  **** verticesAroundVertex
  */
 
@@ -23,14 +22,15 @@
 #define MIN_COORD -3
 #define MAX_COORD 3
 
-#define TOTAL_ARCS 62
-
 #define TRUE 1
 #define FALSE 0
 
 #define HORIZONTAL 0
 #define FORWARDS 1
 #define BACKWARDS 2
+
+#define LEFT 0
+#define RIGHT 1
 
 typedef struct _arcs {
     arc arcs[MAX_ARCS];
@@ -51,9 +51,6 @@ typedef struct spatialInfo{
 } spatialInfo;
 
 static spatialInfo retriveInfo(Game g);
-
-// Returns the best action to make in this turn.
-static action chooseAction(Game g);
 
 // Returns the best vertex on which to build a campus
 // or illegalVertex() if there is none.
@@ -122,12 +119,20 @@ static vertices ownedCampuses(Game g, uni me);
 // Checks if player has resources to perform an action.
 static int canAfford(Game g, int actionCode);
 
+// Checks if a player can retrain to afford an action.
+static int canRetrain(Game g, int actionCode);
+
 
 // Returns which way an arc is facing.
 // / - FORWARDS
 // \ - BACKWARDS
 // - - HORIZONTAL
-static int whichWay(arc a);
+static int whichWayArc(arc a);
+
+// Returns which way a vertex is facing.
+// =- - LEFT
+// -= - RIGHT
+static int whichWayVertex(vertex v);
 
 // Returns a vertex based on a region:
 //         ____
@@ -186,16 +191,29 @@ static arc rightBottomArcFromRegion(region r);
 static arcs getAllArcs(Game g);
 
 
-action bestMove(Game g) {
-    action bestMove;
-    
-    bestMove = chooseAction(g);
-    
-    return bestMove;
-}
+// Sorts a vertex's regions
+//         ____
+//        /    \
+//   ____/  r1  \
+//  /    \      /
+// /  r0  \____/
+// \      /    \
+//  \____/  r2  \
+//       \      /
+//        \____/
+//    ____
+//   /    \
+//  /  r0  \____
+//  \      /    \
+//   \____/  r2  \
+//   /    \      /
+//  /  r1  \____/
+//  \      /
+//   \____/
+static vertex sortVertex(vertex v, int facing);
 
-static action chooseAction(Game g){
-    
+
+action bestMove(Game g) {
     action legalAction;
     
     vertex chosenCampus;
@@ -204,7 +222,7 @@ static action chooseAction(Game g){
     
     chosenGO8 = chooseGO8(g);
     
-    printf("I chose (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
+    printf("I chose GO8 (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
     
     if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
        canAfford(g, BUILD_GO8)){
@@ -215,34 +233,34 @@ static action chooseAction(Game g){
     } else {
         chosenCampus = chooseCampus(g);
         
-        printf("I chose (%d, %d), (%d, %d), (%d, %d)\n", chosenCampus.region0.x, chosenCampus.region0.y, chosenCampus.region1.x, chosenCampus.region1.y, chosenCampus.region2.x, chosenCampus.region2.y);
+        printf("I chose campus (%d, %d), (%d, %d), (%d, %d)\n", chosenCampus.region0.x, chosenCampus.region0.y, chosenCampus.region1.x, chosenCampus.region1.y, chosenCampus.region2.x, chosenCampus.region2.y);
         
         if(!verticesAreEqual(chosenCampus, illegalVertex()) &&
            canAfford(g, BUILD_CAMPUS)){
-        
+            
             legalAction.actionCode = BUILD_CAMPUS;
             legalAction.targetVertex = chosenCampus;
             
         } else {
             if(canAfford(g, START_SPINOFF)){
-                    
+                
                 legalAction.actionCode = START_SPINOFF;
-                    
+                
             } else {
                 chosenArc = chooseArc(g);
                 
-                printf("I chose (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
+                printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
                 
                 if(canAfford(g, CREATE_ARC) &&
                    !arcsAreEqual(chosenArc, illegalArc())){
                     
                     legalAction.actionCode = CREATE_ARC;
-                    legalAction.targetARC = chooseArc(g);
+                    legalAction.targetARC = chosenArc;
                     
                 } else {
                     
                     legalAction.actionCode = PASS;
-        
+                    
                 }
             }
         }
@@ -255,16 +273,14 @@ static action chooseAction(Game g){
 
 static vertex chooseGO8(Game g){
     vertex legalVertex = illegalVertex();
-    vertex testVertex;
     uni me = getTurnNumber(g) % 3;
     
     //Region Coordinates lie between -2 and 2.
-    if (canAfford(g, BUILD_GO8)){
         
-        if (ownedCampuses(g, me).amountOfVertices != 0) {
-            testVertex = ownedCampuses(g, me).vertices[0];
-        }
+    if (ownedCampuses(g, me).amountOfVertices != 0) {
+        legalVertex = ownedCampuses(g, me).vertices[0];
     }
+    
     return legalVertex;
 }
 
@@ -274,24 +290,23 @@ static vertex chooseCampus(Game g){
     uni me = getTurnNumber(g) % 3;
     
     //Region Coordinates lie between -2 and 2.
-    if (canAfford(g, BUILD_CAMPUS)){
         
-        arcs mArcs = ownedArcs(g, me);
-        int arcCount = 0;
+    arcs mArcs = ownedArcs(g, me);
+    int arcCount = 0;
+    
+    while (arcCount < mArcs.amountOfArcs && verticesAreEqual(legalVertex, illegalVertex())){
+        testVertices = verticesAroundArc(mArcs.arcs[arcCount]);
         
-        while (arcCount < mArcs.amountOfArcs && verticesAreEqual(legalVertex, illegalVertex())){
-            testVertices = verticesAroundArc(mArcs.arcs[arcCount]);
-            
-            if (isLegalVertex(g, testVertices.vertices[0])){
-                legalVertex = testVertices.vertices[0];
-            } else if (isLegalVertex(g, testVertices.vertices[1])){
-                legalVertex = testVertices.vertices[1];
-            } else if (isLegalVertex(g, testVertices.vertices[2])){
-                legalVertex = testVertices.vertices[2];
-            }
-            arcCount++;
+        if (isLegalVertex(g, testVertices.vertices[0])){
+            legalVertex = testVertices.vertices[0];
+        } else if (isLegalVertex(g, testVertices.vertices[1])){
+            legalVertex = testVertices.vertices[1];
+        } else if (isLegalVertex(g, testVertices.vertices[2])){
+            legalVertex = testVertices.vertices[2];
         }
+        arcCount++;
     }
+    
     return legalVertex;
 }
 
@@ -304,6 +319,9 @@ static arc chooseArc(Game g) {
     int arcCount;
     int campusCount;
     int i;
+    int j;
+    vertices aroundArc;
+    int campusAroundArc;
     
     mArcs = ownedArcs(g, me);
     if (mArcs.amountOfArcs ==  0) {
@@ -339,8 +357,19 @@ static arc chooseArc(Game g) {
 
             i = 0;
             while (i < testArcs.amountOfArcs) {
+                aroundArc = verticesAroundArc(testArcs.arcs[i]);
+                campusAroundArc = FALSE;
+                j = 0;
+                while (j < aroundArc.amountOfVertices) {
+                    if (getCampus(g, aroundArc.vertices[i]) == me+1 ||
+                        getCampus(g, aroundArc.vertices[i]) == me+4) {
+                        campusAroundArc = TRUE;
+                    }
+                    j++;
+                }
                 if (isLegalArc(g, testArcs.arcs[i]) &&
-                    arcsAreEqual(legalArc, illegalArc())) {
+                    arcsAreEqual(legalArc, illegalArc()) &&
+                    !campusAroundArc) {
                     legalArc = testArcs.arcs[i];
                 }
                 i++;
@@ -393,7 +422,7 @@ static arcs arcsAroundArc(arc a) {
     int facing;
     
     
-    facing = whichWay(a);
+    facing = whichWayArc(a);
     
     if (facing == HORIZONTAL) {
         if (a.region0.x > a.region1.x) {
@@ -488,8 +517,75 @@ static arcs arcsAroundArc(arc a) {
 
 static vertices verticesAroundVertex(vertex v) {
     vertices arr;
+    vertex v0;
+    vertex v1;
+    vertex v2;
     
+    region r0;
+    region r1;
+    region r2;
+    region r3;
+    region r4;
+    region r5;
     
+    if (whichWayVertex(v) == LEFT) {
+        v = sortVertex(v, LEFT);
+        r1 = v.region0;
+        r3 = v.region1;
+        r4 = v.region2;
+        
+        r0.y = r1.y;
+        r0.x = r1.x - 1;
+        
+        r2.y = r1.y;
+        r2.x = r1.x + 1;
+        
+        r5.x = r4.x;
+        r4.y = r4.y - 1;
+        
+        v0.region0 = r0;
+        v0.region1 = r1;
+        v0.region2 = r2;
+        
+        v1.region0 = r1;
+        v1.region1 = r3;
+        v1.region2 = r4;
+        
+        v2.region0 = r2;
+        v2.region1 = r4;
+        v2.region2 = r5;
+        
+    } else {
+        v = sortVertex(v, RIGHT);
+        r1 = v.region0;
+        r2 = v.region1;
+        r4 = v.region2;
+        
+        r0.x = r1.x;
+        r0.y = r1.y + 1;
+        
+        r3.x = r1.x;
+        r3.y = r1.y - 1;
+        
+        r5.y = r4.y;
+        r5.x = r4.x + 1;
+        
+        v0.region0 = r0;
+        v0.region1 = r1;
+        v0.region2 = r3;
+        
+        v1.region0 = r1;
+        v1.region1 = r2;
+        v1.region2 = r4;
+        
+        v2.region0 = r3;
+        v2.region1 = r4;
+        v2.region2 = r5;
+    }
+    
+    arr.vertices[0] = v0;
+    arr.vertices[1] = v1;
+    arr.vertices[2] = v2;
     
     arr.amountOfVertices = 3;
     
@@ -510,7 +606,7 @@ static vertices verticesAroundArc(arc a) {
     int facing;
     
     
-    facing = whichWay(a);
+    facing = whichWayArc(a);
     
     if (facing == HORIZONTAL) {
         if (a.region0.x > a.region1.x) {
@@ -897,8 +993,9 @@ static vertices ownedCampuses(Game g, uni me) {
     int j;
     int alreadyCounted;
     
+    result.amountOfVertices = 0;
     allVertices = getAllVertices(g);
-    
+
     i = 0;
     while (i < allVertices.amountOfVertices) {
         if ((getCampus(g, allVertices.vertices[i]) == me+1 ||
@@ -1092,7 +1189,19 @@ static int canAfford(Game g, int actionCode) {
     return canAfford;
 }
 
-static int whichWay(arc a) {
+static int canRetrain(Game g, int actionCode) {
+    int canRetrain;
+    
+    if (canAfford(g, actionCode)) {
+        canRetrain = FALSE;
+    } else {
+        canRetrain = TRUE;
+    }
+    
+    return canRetrain;
+}
+
+static int whichWayArc(arc a) {
     int facing;
     
     if (a.region0.y == a.region1.y) {
@@ -1102,6 +1211,35 @@ static int whichWay(arc a) {
     } else {
         facing = FORWARDS;
     }
+    
+    return facing;
+}
+
+static int whichWayVertex(vertex v) {
+    int facing;
+    int sharedY;
+    int otherY;
+    
+    if (v.region0.y == v.region1.y) {
+        sharedY = v.region0.y;
+        otherY = v.region2.y;
+    } else if (v.region1.y == v.region2.y) {
+        sharedY = v.region1.y;
+        otherY = v.region0.y;
+    } else if (v.region2.y == v.region0.y) {
+        sharedY = v.region2.y;
+        otherY = v.region1.y;
+    } else {
+        sharedY = 0;
+        otherY = 0;
+    }
+    
+    if (sharedY > otherY) {
+        facing = RIGHT;
+    } else {
+        facing = LEFT;
+    }
+    
     
     return facing;
 }
@@ -1241,4 +1379,76 @@ static arcs getAllArcs(Game g) {
         x++;
     }
     return result;
+}
+
+static vertex sortVertex(vertex v, int facing) {
+    region r0;
+    region r1;
+    region r2;
+    
+    if (facing == LEFT) {
+        if (v.region0.y == v.region1.y) {
+            if (v.region0.x > v.region1.y) {
+                r0 = v.region0;
+                r1 = v.region1;
+            } else {
+                r0 = v.region1;
+                r1 = v.region0;
+            }
+            r2 = v.region2;
+        } else if (v.region1.y == v.region2.y) {
+            if (v.region1.x > v.region2.x) {
+                r0 = v.region1;
+                r1 = v.region2;
+            } else {
+                r0 = v.region2;
+                r1 = v.region1;
+            }
+            r2 = v.region0;
+        } else {
+            if (v.region2.x > v.region0.x) {
+                r0 = v.region2;
+                r1 = v.region0;
+            } else {
+                r0 = v.region0;
+                r1 = v.region2;
+            }
+            r2 = v.region2;
+        }
+    } else {
+        if (v.region0.y == v.region1.y) {
+            if (v.region0.x > v.region1.y) {
+                r1 = v.region0;
+                r2 = v.region1;
+            } else {
+                r1 = v.region1;
+                r2 = v.region0;
+            }
+            r0 = v.region2;
+        } else if (v.region1.y == v.region2.y) {
+            if (v.region1.x > v.region2.x) {
+                r1 = v.region1;
+                r2 = v.region2;
+            } else {
+                r1 = v.region2;
+                r2 = v.region1;
+            }
+            r0 = v.region0;
+        } else {
+            if (v.region2.x > v.region0.x) {
+                r1 = v.region2;
+                r2 = v.region0;
+            } else {
+                r1 = v.region0;
+                r2 = v.region2;
+            }
+            r0 = v.region2;
+        }
+    }
+    
+    v.region0 = r0;
+    v.region1 = r1;
+    v.region2 = r2;
+    
+    return v;
 }
