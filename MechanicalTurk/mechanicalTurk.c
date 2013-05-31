@@ -242,21 +242,23 @@ action bestMove(Game g) {
             legalAction.targetVertex = chosenCampus;
             
         } else {
-            if(canAfford(g, START_SPINOFF)){
+            chosenArc = chooseArc(g);
+            
+            printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
+            
+            if(canAfford(g, CREATE_ARC) &&
+               !arcsAreEqual(chosenArc, illegalArc()) &&
+               getARCs(g, getWhoseTurn(g)) < 2){
                 
-                legalAction.actionCode = START_SPINOFF;
+                legalAction.actionCode = CREATE_ARC;
+                legalAction.targetARC = chosenArc;
                 
             } else {
-                chosenArc = chooseArc(g);
                 
-                printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
+                if(canAfford(g, START_SPINOFF)){
+            
+                    legalAction.actionCode = START_SPINOFF;
                 
-                if(canAfford(g, CREATE_ARC) &&
-                   !arcsAreEqual(chosenArc, illegalArc())){
-                    
-                    legalAction.actionCode = CREATE_ARC;
-                    legalAction.targetARC = chosenArc;
-                    
                 } else {
                     
                     legalAction.actionCode = PASS;
@@ -273,7 +275,7 @@ action bestMove(Game g) {
 
 static vertex chooseGO8(Game g){
     vertex legalVertex = illegalVertex();
-    uni me = getTurnNumber(g) % 3;
+    uni me = getWhoseTurn(g);
     
     //Region Coordinates lie between -2 and 2.
         
@@ -287,7 +289,7 @@ static vertex chooseGO8(Game g){
 static vertex chooseCampus(Game g){
     vertex legalVertex = illegalVertex();
     vertices testVertices;
-    uni me = getTurnNumber(g) % 3;
+    uni me = getWhoseTurn(g);
     
     //Region Coordinates lie between -2 and 2.
         
@@ -312,7 +314,7 @@ static vertex chooseCampus(Game g){
 
 static arc chooseArc(Game g) {
     arc legalArc = illegalArc();
-    uni me = getTurnNumber(g) % 3;
+    uni me = getWhoseTurn(g);
     arcs testArcs;
     arcs mArcs;
     vertices mCampuses;
@@ -824,7 +826,7 @@ static int isLegalVertex(Game g, vertex v) {
     i = 0;
     while (i < adjacentArcs.amountOfArcs) {
         
-        if ((getARC(g, adjacentArcs.arcs[i]) == (getTurnNumber(g)%3) + 1)) {
+        if ((getARC(g, adjacentArcs.arcs[i]) == (getWhoseTurn(g)) + 1)) {
                 hasAdjacentArc = TRUE;
             }
         
@@ -845,7 +847,7 @@ static int isLegalArc(Game g, arc a) {
     arcs adjacentArcs;
     vertices adjacentVertices;
     
-    uni me = getTurnNumber(g) % 3;
+    uni me = getWhoseTurn(g);
     
     int i;
     
@@ -871,7 +873,7 @@ static int isLegalArc(Game g, arc a) {
     i = 0;
     while (i < adjacentArcs.amountOfArcs) {
         
-        if ((getARC(g, adjacentArcs.arcs[i]) == (getTurnNumber(g)%3) + 1)) {
+        if ((getARC(g, adjacentArcs.arcs[i]) == (getWhoseTurn(g)) + 1)) {
             hasAdjacentArc = TRUE;
         }
         
@@ -981,6 +983,8 @@ static arcs ownedArcs(Game g, uni me) {
         i++;
     }
     
+    printf("got %d arcs\n", getARCs(g, me));
+    
     assert(getARCs(g, me) == result.amountOfArcs);
     
     return result;
@@ -1002,6 +1006,8 @@ static vertices ownedCampuses(Game g, uni me) {
             getCampus(g, allVertices.vertices[i]) == me+4) &&
             isRealVertex(g, allVertices.vertices[i])) {
             
+            printf("campus (%d, %d), (%d, %d), (%d, %d) owned by player %d\n", allVertices.vertices[i].region0.x, allVertices.vertices[i].region0.y, allVertices.vertices[i].region1.x, allVertices.vertices[i].region1.y, allVertices.vertices[i].region2.x, allVertices.vertices[i].region2.y, getCampus(g, allVertices.vertices[i]));
+            
             j = 0;
             alreadyCounted = FALSE;
             while (j < result.amountOfVertices) {
@@ -1018,8 +1024,6 @@ static vertices ownedCampuses(Game g, uni me) {
         }
         i++;
     }
-    
-    assert(getCampuses(g, me) == result.amountOfVertices);
     
     return result;
 }
@@ -1150,7 +1154,7 @@ static int canAfford(Game g, int actionCode) {
     int canAfford;
     uni me;
     
-    me = getTurnNumber(g) % 3;
+    me = getWhoseTurn(g);
     
     if (actionCode == BUILD_CAMPUS) {
         
@@ -1287,6 +1291,8 @@ static vertices getAllVertices(Game g) {
     region r;
     vertices result;
     vertex tempVertex;
+    
+    result.amountOfVertices = 0;
     
     x = MIN_COORD;
     while (x <= MAX_COORD) {

@@ -188,7 +188,7 @@ void throwDice (Game g, int diceScore) {
     int player = 0;
     while (player < NUM_UNIS) {
         i = 0;
-        while(i < MAX_CAMPUSES){
+        while(i < getCampuses(g, getCampuses(g, player) + getGO8s(g, player))){
             int j = 0;
             while (j < regions) {
                 if (vertexSharesRegion(g->campuses[player][i],
@@ -261,6 +261,7 @@ void makeAction (Game g, action a) {
         
         g->GO8campuses[currentPlayer][nextGO8Index] = a.targetVertex;
         g->numberOfGO8[currentPlayer]++;
+        g->numberOfCampuses[currentPlayer]--;
         
         g->unis[currentPlayer].studentCount[STUDENT_MJ] -= 2;
         g->unis[currentPlayer].studentCount[STUDENT_MMONEY] -= 3;
@@ -914,9 +915,15 @@ int getCampus (Game g, vertex v) {
         currentVertex = 0;
         while((currentVertex < g->numberOfCampuses[currentUniversity]) &&
               (output == 0)){
+            
             if(verticesAreEqual(v, g->campuses[currentUniversity][currentVertex])){
                 output = currentUniversity + 1;
             }
+            currentVertex++;
+        }
+        currentVertex = 0;
+        while (currentVertex < g->numberOfGO8[currentUniversity] &&
+               output == 0) {
             
             if(verticesAreEqual(v, g->GO8campuses[currentUniversity][currentVertex])){
                 output = currentUniversity + 4;

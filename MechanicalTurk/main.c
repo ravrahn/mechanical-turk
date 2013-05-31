@@ -21,105 +21,66 @@
 #define TEST_DISCIPLINES {CYAN,PURP,YELL,PURP,YELL,RED ,GREE,GREE, RED,GREE,CYAN,YELL,CYAN,BLUE,YELL,PURP,GREE,CYAN,RED }
 #define TEST_DICE {9,10,8,12,6,5,3,11,3,11,4,6,4,9,9,2,8,10,5}
 
-int main(int argc, const char * argv[]) {
+#define CRAZY_DISCIPLINES {RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED}
+#define CRAZY_DICE {6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6}
 
-    // test city!
-    // population 1...
+#define AMOUNT_OF_CRAZY 1917
+
+void retrainFor(Game g, int retrainTo, uni player);
+Game newGameWithCrazyResources (void);
+
+int main(int argc, const char * argv[]) {
     
-    int degree[] = TEST_DISCIPLINES;
-    int dice[] = TEST_DICE;
+    Game g = newGameWithCrazyResources();
+    action a;
     
-    Game g = newGame(degree, dice);
-    
-    throwDice(g, 1);
-    printf("Player %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
-    
-    action a = bestMove(g);
-    
-    makeAction(g, a);
-    
-    throwDice(g, 2);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
     
     a = bestMove(g);
     
+    assert(isLegalAction(g, a));
     makeAction(g, a);
+    
+    throwDice(g, 1);
+    
+    
+    throwDice(g, 2);
     
     
     throwDice(g, 3);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
     
     a = bestMove(g);
     
+    assert(isLegalAction(g, a));
     makeAction(g, a);
-    
     
     throwDice(g, 4);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
     
-    a = bestMove(g);
-    
-    makeAction(g, a);
     
     throwDice(g, 5);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
-    
-    a = bestMove(g);
-    
-    makeAction(g, a);
-    
     
     throwDice(g, 6);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
     
     a = bestMove(g);
     
-    makeAction(g, a);
-    
-    throwDice(g, 7);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
-    
-    a = bestMove(g);
-    
+    assert(isLegalAction(g, a));
     makeAction(g, a);
     
     throwDice(g, 8);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
-    
-    a = bestMove(g);
-    
-    makeAction(g, a);
-    
     
     throwDice(g, 9);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
-    
-    a = bestMove(g);
-    
-    makeAction(g, a);
-    
     
     throwDice(g, 10);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
     
     a = bestMove(g);
     
+    assert(isLegalAction(g, a));
     makeAction(g, a);
     
     throwDice(g, 11);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
-    
-    a = bestMove(g);
-    
-    makeAction(g, a);
-    
-    
-    throwDice(g, 12);
-    printf("\nPlayer %d, turn %d\n", getTurnNumber(g) % 3, getTurnNumber(g));
-    
-    a = bestMove(g);
-    
-    makeAction(g, a);
     
     int i=0;
     while (i < 3) {
@@ -135,4 +96,51 @@ int main(int argc, const char * argv[]) {
     
     printf("all tests passed!");
     return EXIT_SUCCESS;
+}
+
+Game newGameWithCrazyResources (void) {
+    int dice[] = CRAZY_DICE;
+    int degree[] = CRAZY_DISCIPLINES;
+    
+    int j;
+    int i;
+    
+    Game g = newGame(degree, dice);
+    
+    i = 0;
+    while (i < AMOUNT_OF_CRAZY * 7.5) {
+        throwDice(g, 6);
+        i++;
+    }
+    
+    while (getWhoseTurn(g) != 0) {
+        throwDice(g, 4);
+    }
+    
+    i = 0;
+    while (i < 3) {
+        j = 0;
+        while (j < AMOUNT_OF_CRAZY * 5) {
+            retrainFor(g, j % 5 + 1, i);
+            j++;
+        }
+        throwDice(g, 4);
+        
+        i++;
+    }
+    i--;
+    printf("students: BPS:%d B?:%d MJ:%d M$:%d MTV:%d THD:%d\n", getStudents(g, i, STUDENT_BPS), getStudents(g, i, STUDENT_BQN), getStudents(g, i, STUDENT_MJ), getStudents(g, i, STUDENT_MMONEY), getStudents(g, i, STUDENT_MTV), getStudents(g, i, STUDENT_THD));
+    
+    
+    return g;
+}
+
+void retrainFor(Game g, int retrainTo, uni player) {
+    action a;
+    
+    a.actionCode = RETRAIN_STUDENTS;
+    a.retrainFrom = RED;
+    a.retrainTo = retrainTo;
+    
+    makeAction(g, a);
 }
