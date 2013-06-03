@@ -41,7 +41,7 @@ int main(int argc, const char * argv[]) {
     assert(isLegalAction(g, a));
     makeAction(g, a);
     
-    throwDice(g, 1);
+    throwDice(g, 2);
     
     
     throwDice(g, 2);

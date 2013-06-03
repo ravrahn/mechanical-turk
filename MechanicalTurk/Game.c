@@ -1,330 +1,497 @@
-// Please put FOUR spaces in a tab, not three
-// Also, recall that this is due in 10 minutes!
-
 /*
  *  Game.c
- *  1917 2013 ver 2.0
+ *  1917 2013 ver 3.0 2nd June
+ *  Submission for v3.0 milestone
+ *
+ *  As modified and implemented by Monday13Spoons
  *
  *  Created by Richard Buckland on 2/5/2013
- *  Altered by Tues09Guan!
  *  Licensed under Creative Commons SA-BY-NC 3.0. *
+ *
+ *  ==============================================
+ *  If you are using this file for running your AI
+ *  Please report any bugs to Genevieve Anne (our tute testing coordinator)
+ *  And make sure you can replicate the bug!
+ *  Thanks, Mon13Spoons
+ *  ==============================================
  */
 
-// this entire time we haven’t had stdio
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
+#include <math.h>
 
 #include "Game.h"
 
-#define NUM_DEGREE_TYPES 6
-#define MAX_ARCS 100
-#define MAX_CAMPUSES 100
-#define MAX_GO8S 8
+#define NUM_VERTICES 54
+#define NUM_ARCS     72
+#define NUM_DEGREES  6
+#define NUM_CENTERS  6
 
-#define DEFAULT_NUM_GO8S 0
-#define DEFAULT_NUM_CAMPUSES 2
-#define DEFAULT_NUM_ARCS 0
-#define LEFT_SEA_BOUNDRY -3
-#define RIGHT_SEA_BOUNDRY 3
-#define TERRA_NULLIUS -1
+#define MAX_REGION_COORD 2
+#define MAX_ARC_COORD (MAX_REGION_COORD*2+1)
+#define VERTICES_PER_HEX 6
+#define EDGES_PER_VERTEX 3
+#define VERTICES_PER_EDGE 2
 
-//RegionToArray Conversion Constants
-#define COL_0_START 0
-#define COL_1_START 3
-#define COL_2_START 7
-#define COL_3_START 12
-#define COL_4_START 16
-#define COL_END 19
+#define KPI_TO_WIN 150
+#define START_KPI_COUNT 20
+#define KPI_PER_CAMPUS  10
+#define KPI_PER_GO8     20
+#define KPI_PER_ARC     2
+#define KPI_PER_PATENT  10
+#define MOST_ARCS_KPI   10
+#define MOST_PUBS_KPI   10
 
-static int verticesAreEqual(vertex a, vertex b);
-static int regionsAreEqual(region a, region b);
-static int regionsAreAdjacent(region a, region b);
-static region convertToRegion(Game g, int regionNumber);
-static int arcSharesRegion(arc a, region b);
-static int arcsAreEqual(arc a, arc b);
-static int vertexSharesRegion(vertex a, region b);
-static int convertRegionToArray(region r);
-static int isLegalCampus(Game g, action a);
-static int isLegalGO8(Game g, action a);
-static int isLegalArcBuild(Game g, action a);
-static int isLegalSpinoff(Game g, action a);
-static int isLegalRetrain(Game g, action a);
-static void setStartingCampuses(Game g, uni player);
-static region newRegion(int x, int y);
+#define INVALID -1
 
-static int sumArray(int a[], int num_elements);
+#define DEFAULT_STUDENTS {0,3,3,1,1,1}
+#define DEFAULT_EXCHANGE_RATE 3
+#define TERRA_NULLIS -1
 
-//struct _player
-typedef struct _player{
-    int studentCount[NUM_DEGREE_TYPES];
-    int publications;
-    //int spinoffs;
-    int ipPatents;
-    
-} player;
+#define A_START_CAMPUS_1_VERTEX 26
+#define A_START_CAMPUS_2_VERTEX 27
+#define B_START_CAMPUS_1_VERTEX 5
+#define B_START_CAMPUS_2_VERTEX 48
+#define C_START_CAMPUS_1_VERTEX 0
+#define C_START_CAMPUS_2_VERTEX 53
 
-//struct _game
-// your tutorial class designs this type (not us)
-// store in this struct all the things you might want to know about
-// the Game so you can write the interface functions in this header
-// eg you might want to store the current turn number (so i've put
-// it in for you as an example but take it out if you don't want it)
-// your group puts here the details of the data
-// you want to store in the _game struct
+#define START_CAMPUS_COUNT    2
+#define START_GO8_COUNT       0
+#define START_ARC_COUNT       0
+#define START_PATENT_COUNT    0
+#define START_PUB_COUNT       0
+
+#define CAMPUS_COST {0,1,1,1,1,0}
+#define GO8_COST {0,0,0,2,0,3}
+#define ARC_COST {0,1,1,0,0,0}
+#define SPINOFF_COST {0,0,0,1,1,1}
+#define MAX_GO8_CAMPUS 8
+
+typedef struct _university {
+    int studentsInDegree[NUM_DEGREES];
+    int KPICount;
+    int campusCount;
+    int GO8Count;
+    int arcGrantCount;
+    int patentCount;
+    int publicationsCount;
+    int centers[NUM_DEGREES];
+} university;
+
+typedef struct  _hex {
+    int hexValue;
+    degree degreeType;
+    region hexRegion;
+} hex;
+
 typedef struct _game {
-    
     int currentTurn;
-    player unis[NUM_UNIS];
-    
-    //These variables deal with the game board's regions
-    int regionResource[NUM_REGIONS];
-    int regionDiceValue[NUM_REGIONS];
-    
-    
-    
-    //WARNING!!!!! THIS CHANGED RECENTLY
-    //IF YOU SEE “uniACampuses[]” or “uniA_ARCS[]” orsomething of the sort, replace it
-    // with this new bit!!!!
-    vertex campuses[NUM_UNIS][MAX_CAMPUSES];
-    arc arcGrants[NUM_UNIS][MAX_ARCS];
-    vertex GO8campuses[NUM_UNIS][MAX_CAMPUSES];
-    
-    //These store the number of campuses for each player
-    //and the number of arcs for each player.
-    // e.g. numberOfCampuses[UNI_A] is the number of campuses that uniA has
-    // numberOfCampuses[UNI_B] is the number of campuses that uniB has, etc...
-    int numberOfCampuses[NUM_UNIS];
-    int numberOfGO8[NUM_UNIS];
-    int numberOfArcs[NUM_UNIS];
-    
-    //The most number of publication is held by this uni
-    int numberOfPublications [NUM_UNIS];
-    //Store the previous owner of the Most Publications title
-    int previousMostPublications;
-    //Store the previous owner of the Most Arcs title
-    int previousMostArcs;
-    
+    hex map[NUM_REGIONS];
+    university uniData[NUM_UNIS];
+    int vertices[NUM_VERTICES];
+    int arcs[NUM_ARCS];
+    int mostArcsPlayer;
+    int mostPubsPlayer;
 } game;
 
+//////////////////////////////////
+// Helper Function Prototypes
+//////////////////////////////////
 
-//newGame
+typedef int regionIndex;
+typedef int vertexIndex;
+typedef int arcIndex;
+
+static int isVertex (vertex v);
+static int isArc (arc a);
+static int isLand (region r);
+
+static regionIndex regionToIndex (region r);
+static arcIndex arcToIndex (arc a);
+static vertexIndex vertexToIndex (vertex v);
+
+static region indexToRegion (int index);
+
+static vertexIndex adjVertexToRegion (region r, int i);
+static vertexIndex adjVertexToArc(arc a,int i);
+static arcIndex adjArcToArc(arc a,int i);
+static vertexIndex adjVertexToVertex (vertex v, int i);
+static arcIndex adjArcToVertex (vertex v, int i);
+
+static int checkOrder (int a, int b, int c);
+static int min (int a, int b);
+static int max (int a, int b);
+static int minYCoord (int xval, int limit);
+static int maxYCoord (int xval, int limit);
+
 /* **** Functions which change the Game aka SETTERS **** */
 // given a Game this function makes it a new Game, resetting everything and
 // setting the the type of degree produced by each
 // region, and the value on the dice discs in each region.
 //
 Game newGame (int degree[], int dice[]) {
-    Game g = malloc(sizeof(struct _game));  // set memory aside for Game
-    assert (g!= NULL);                 // check it worked
-    g->currentTurn = TERRA_NULLIUS;               // initialise currentTurn field
     
-    //Set up the resources and dice values
-    int index = 0;
-    while(index < NUM_REGIONS){
-        g->regionResource[index] = degree[index];
-        g->regionDiceValue[index] = dice[index];
-        index++;
+    // set memory aside for Game
+    Game g = malloc(sizeof(struct _game));
+    
+    // check it worked
+    assert (g != NULL);
+    
+    // initialise currentTurn
+    g->currentTurn = TERRA_NULLIS;
+    
+    //Populate the map according to the input degree and dice arrays.
+    int i = 0;
+    while (i < NUM_REGIONS) {
+        
+        assert ((degree[i]>=STUDENT_THD) &&(degree[i]<=STUDENT_MMONEY) &&"Student types must be legal!");
+        assert(dice[i]>=2 && dice[i]<=12 && "Dice values must be between 2 and 12");
+        
+        g->map[i].degreeType = degree[i];
+        g->map[i].hexValue = dice[i];
+        g->map[i].hexRegion = indexToRegion(i);
+        i++;
     }
     
-    //Now initilise all the uni related data.
-    //Goes through each player one by one and sets up their data.
-    int currentUniversity = UNI_A;
-    while(currentUniversity < NUM_UNIS){
-        g->numberOfCampuses[currentUniversity] = DEFAULT_NUM_CAMPUSES;
-        g->numberOfArcs[currentUniversity] = DEFAULT_NUM_ARCS;
-        g->numberOfGO8[currentUniversity] = DEFAULT_NUM_GO8S;
-        
-        //STARTING RESOURCES:
-        //3 x BPS, 3 x B?, 1 x MTV, 1 x MJ, 1 x M$, and no ThDs.
-        
-        g->unis[currentUniversity].studentCount[STUDENT_BPS] = 3;
-        g->unis[currentUniversity].studentCount[STUDENT_BQN] = 3;
-        g->unis[currentUniversity].studentCount[STUDENT_MTV] = 1;
-        g->unis[currentUniversity].studentCount[STUDENT_MJ] = 1;
-        g->unis[currentUniversity].studentCount[STUDENT_MMONEY] = 1;
-        g->unis[currentUniversity].studentCount[STUDENT_THD] = 0;
-        
-        if(currentUniversity == UNI_A){
-            //Put the first 2 campuses for player A down in the default places
-            setStartingCampuses(g, UNI_A);
-        } else if (currentUniversity == UNI_B){
-            //Put the first 2 campuses for player B down in the default places
-            setStartingCampuses(g, UNI_B);
-        } else if (currentUniversity == UNI_C){
-            //Put the first 2 campuses for player C down in the default places
-            setStartingCampuses(g, UNI_C);
+    //Set all vertices to vacant.
+    i = 0;
+    while (i < NUM_VERTICES) {
+        g->vertices[i] = VACANT_VERTEX;
+        i++;
+    }
+    
+    // Set all arcs to vacant.
+    i = 0;
+    while (i < NUM_ARCS) {
+        g->arcs[i] = VACANT_ARC;
+        i++;
+    }
+    
+    //Set university centers arrays to false
+    i = UNI_A;
+    int j;
+    while (i < NUM_UNIS) {
+        j = STUDENT_THD;
+        while (j < NUM_DEGREES) {
+            g->uniData[i].centers[j] = FALSE;
+            j++;
         }
-        currentUniversity++;
+        i++;
     }
+    
+    //Populate the degrees in each university with the starting values.
+    i = UNI_A;
+    int startingStudents[NUM_DEGREES] = DEFAULT_STUDENTS;
+    while (i < NUM_UNIS) {
+        j = STUDENT_THD;
+        while (j < NUM_DEGREES) {
+            g->uniData[i].studentsInDegree[j] = startingStudents[j];
+            j++;
+        }
+        i++;
+    }
+    
+    // Assigning A's campus locations and centers
+    g->vertices[A_START_CAMPUS_1_VERTEX] = CAMPUS_A;
+    g->vertices[A_START_CAMPUS_2_VERTEX] = CAMPUS_A;
+    
+    // Assigning B's campus locations and centers
+    g->vertices[B_START_CAMPUS_1_VERTEX] = CAMPUS_B;
+    g->vertices[B_START_CAMPUS_2_VERTEX] = CAMPUS_B;
+    
+    // Assigning C's campus locations and centers
+    g->vertices[C_START_CAMPUS_1_VERTEX] = CAMPUS_C;
+    g->vertices[C_START_CAMPUS_2_VERTEX] = CAMPUS_C;
+    
+    //Setting all counts to initial values.
+    i = UNI_A;
+    while (i < NUM_UNIS) {
+        g->uniData[i].KPICount = START_KPI_COUNT;
+        g->uniData[i].campusCount = START_CAMPUS_COUNT;
+        g->uniData[i].GO8Count = START_GO8_COUNT;
+        g->uniData[i].arcGrantCount = START_ARC_COUNT;
+        g->uniData[i].patentCount = START_PATENT_COUNT;
+        g->uniData[i].publicationsCount = START_PUB_COUNT;
+        i++;
+    }
+    
+    //Updating the KPICount for the Player C prestige convention.
+    g->uniData[UNI_C].KPICount += MOST_ARCS_KPI + MOST_PUBS_KPI;
+    
+    //Setting the Player C prestige convention.
+    g->mostArcsPlayer = UNI_C;
+    g->mostPubsPlayer = UNI_C;
+    
     return g;
 }
 
-
-// after week 8 we will talk about implementing this. for now
-// you can leave it to just do this free
 void disposeGame (Game g) {
     assert (g != NULL);
     free (g);
 }
 
-//void throwDice
 // advance the Game to the next turn,
 // assuming that the dice has just been rolled and produced diceScore
 // the Game starts in turn -1 (we call this state "Terra Nullis") and
 // moves to turn 0 as soon as the first dice is thrown.
 void throwDice (Game g, int diceScore) {
-    int validRegions[NUM_REGIONS];
-    int regions = 0;
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(diceScore>=2 && diceScore<=12 && "Dice values must be between 2 and 12");
+    g->currentTurn++;
     int i = 0;
+    int contents;
     while (i < NUM_REGIONS) {
-        if (g->regionDiceValue[i] == diceScore) {
-            validRegions[regions] = i;
-            regions++;
-        }
-        i++;
-    }
-    
-    int player = 0;
-    while (player < NUM_UNIS) {
-        i = 0;
-        while(i < getCampuses(g, getCampuses(g, player) + getGO8s(g, player))){
+        if (g->map[i].hexValue == diceScore) {
             int j = 0;
-            while (j < regions) {
-                if (vertexSharesRegion(g->campuses[player][i],
-                                       convertToRegion(g, validRegions[j]))) {
-                    g->unis[player].studentCount[g->regionResource[validRegions[j]]]++;
+            region activeRegion = g->map[i].hexRegion;
+            degree studentType = g->map[i].degreeType;
+            while (j < VERTICES_PER_HEX) {
+                vertexIndex index = adjVertexToRegion(activeRegion, j);
+                if (index > INVALID) {
+                    contents = g->vertices[index];
+                    if (contents > CAMPUS_C) {
+                        g->uniData[contents - GO8_CAMPUS_A].studentsInDegree[studentType]+=2;
+                    } else if (contents>VACANT_VERTEX) {
+                        g->uniData[contents - CAMPUS_A].studentsInDegree[studentType]++;
+                    }
                 }
                 j++;
             }
+        }
+        i++;
+    }
+    if (diceScore==7) {
+        i = 0;
+        int thdCount;
+        while (i < NUM_UNIS) {
+            thdCount = 0;
+            thdCount += g->uniData[i].studentsInDegree[STUDENT_MTV];
+            thdCount += g->uniData[i].studentsInDegree[STUDENT_MMONEY];
+            g->uniData[i].studentsInDegree[STUDENT_MTV] = 0;
+            g->uniData[i].studentsInDegree[STUDENT_MMONEY] = 0;
+            g->uniData[i].studentsInDegree[STUDENT_THD] +=thdCount;
             i++;
         }
-        player++;
     }
-    
-    if (diceScore == 7) {
-        // all M$ and MTV students are discarded
-        int player = 0;
-        while (player < NUM_UNIS) {
-            // add M$ and MTV to ThD
-            g->unis[player].studentCount[STUDENT_THD] += g->unis[player].studentCount[STUDENT_MMONEY];
-            g->unis[player].studentCount[STUDENT_THD] += g->unis[player].studentCount[STUDENT_MTV];
-            
-            // set M$ and MTV to 0
-            g->unis[player].studentCount[STUDENT_MMONEY] = 0;
-            g->unis[player].studentCount[STUDENT_MTV] = 0;
-            
-            player++;
-        }
-    }
-    
-    g->currentTurn++;
+    return;
 }
-
 
 // make the specified action for the current player and update the
 // Game state accordingly.
 // The function may assume that the action requested is legal.
 // START_SPINOFF is not a legal action here
-
 void makeAction (Game g, action a) {
-    // firstly, get details of current player
-    // 1. if certain action code
-    // 2. get a->targetVertex  or a->targetARC
-    // 3. change g to reflect the action
-    uni currentPlayer = getWhoseTurn(g);
-	
-	
+    assert(g != NULL && "A test gave us a null game!");
+    assert(a.actionCode >=PASS && a.actionCode <= RETRAIN_STUDENTS && "Action does not exist!");
+    assert(a.actionCode != START_SPINOFF && "Make action was asked to make a spinoff - impossible!");
+    uni player = getWhoseTurn(g);
+    assert(g->currentTurn !=-1 && "Make action was asked to make an action before the game had started!");
     if (a.actionCode == PASS) {
-        //I actually don't know what to put here
+        //do nothing. playGame function will call rollDice to progress the game to the next turn
     } else if (a.actionCode == BUILD_CAMPUS) {
-        // get the next campus address in uni'x'Campuses[]
-        // build campus on a->targetVertex
-        // increment g->numberOfCampuses[currentPlayer]
-        // increment a player's numberOfCampuses
+        assert(isLegalAction(g,a)&&"Tried to build an illegal campus!");
+        //Updating the map
+        vertex targetVertex = a.targetVertex;
+        vertexIndex index = vertexToIndex(targetVertex);
+        //Stores value of uni who owns the campus in index
+        //Eg, if it is player A's turn, vertex will contain 1
+        g->vertices[index] = (player + 1);
         
-        // a player owns x many campuses
-        // since arrays start from 0, the address to store a new(blank)
-        // campus coordinate would be at index x in the array
-        int nextCampusIndex = getCampuses(g, currentPlayer);
-		
-        g->campuses[currentPlayer][nextCampusIndex] = a.targetVertex;
-        g->numberOfCampuses[currentPlayer]++;
+        //Updating the player data
+        g->uniData[player].campusCount++;
         
-        g->unis[currentPlayer].studentCount[STUDENT_BPS]--;
-        g->unis[currentPlayer].studentCount[STUDENT_BQN]--;
-        g->unis[currentPlayer].studentCount[STUDENT_MJ]--;
-        g->unis[currentPlayer].studentCount[STUDENT_MTV]--;
+        //Checking and updating if player owns a new port
+        if (index == 15) {
+            g->uniData[player].centers[STUDENT_MTV] = TRUE;
+        } else if ((index == 36) || (index == 46)) {
+            g->uniData[player].centers[STUDENT_MMONEY] = TRUE;
+        } else if (index == 50) {
+            g->uniData[player].centers[STUDENT_BQN] = TRUE;
+        } else if ((index == 38) || (index == 39)) {
+            g->uniData[player].centers[STUDENT_MJ] = TRUE;
+        } else if (index == 7) {
+            g->uniData[player].centers[STUDENT_BPS] = TRUE;
+        }
+        
+        //Updating KPI
+        g->uniData[player].KPICount += KPI_PER_CAMPUS;
+        
+        //Updating resources
+        g->uniData[player].studentsInDegree[STUDENT_BPS] -= 1;
+        g->uniData[player].studentsInDegree[STUDENT_BQN] -= 1;
+        g->uniData[player].studentsInDegree[STUDENT_MJ] -= 1;
+        g->uniData[player].studentsInDegree[STUDENT_MTV] -= 1;
         
     } else if (a.actionCode == BUILD_GO8) {
-        int nextGO8Index = getGO8s(g, currentPlayer);
+        assert(isLegalAction(g,a)&&"Tried to build an illegal GO8!");
+        //Updating the map
+        vertex targetVertex = a.targetVertex;
+        vertexIndex index = vertexToIndex(targetVertex);
+        //Increase value in index to indicate upgrade from campus to GO8
+        g->vertices[index] += (GO8_CAMPUS_A-CAMPUS_A);
         
-        g->GO8campuses[currentPlayer][nextGO8Index] = a.targetVertex;
-        g->numberOfGO8[currentPlayer]++;
-        g->numberOfCampuses[currentPlayer]--;
+        //Updating player data
+        g->uniData[player].campusCount--;
+        g->uniData[player].GO8Count++;
         
-        g->unis[currentPlayer].studentCount[STUDENT_MJ] -= 2;
-        g->unis[currentPlayer].studentCount[STUDENT_MMONEY] -= 3;
+        //Updating KPI
+        g->uniData[player].KPICount -= KPI_PER_CAMPUS;
+        g->uniData[player].KPICount += KPI_PER_GO8;
+        //Updating resources
+        g->uniData[player].studentsInDegree[STUDENT_MJ] -= 2;
+        g->uniData[player].studentsInDegree[STUDENT_MMONEY] -=3;
+        
         
     } else if (a.actionCode == CREATE_ARC) {
-        int nextARCIndex = getARCs(g, currentPlayer);
+        assert(isLegalAction(g,a)&&"Tried to build an illegal arc!");
+        //Updating the map
+        arc targetARC = a.targetARC;
+        arcIndex index = arcToIndex(targetARC);
+        //Stores value of uni who owns the ARC in index
+        g->arcs[index] = (player + 1);
         
-        g->arcGrants[currentPlayer][nextARCIndex] = a.targetARC;
-        g->numberOfArcs[currentPlayer]++;
+        //Updating player data -- test if prestige changes hands
+        g->uniData[player].arcGrantCount++;
+        if (g->uniData[player].arcGrantCount >
+            g->uniData[getMostARCs(g)].arcGrantCount) {
+            
+            g->uniData[getMostARCs(g)].KPICount -= MOST_ARCS_KPI;
+            g->mostArcsPlayer = player;
+            g->uniData[player].KPICount += MOST_ARCS_KPI;
+        }
         
-        g->unis[currentPlayer].studentCount[STUDENT_BQN]--;
-        g->unis[currentPlayer].studentCount[STUDENT_BPS]--;
+        //Updating KPI
+        g->uniData[player].KPICount += KPI_PER_ARC;
+        //Updating resources
+        g->uniData[player].studentsInDegree[STUDENT_BPS] -= 1;
+        g->uniData[player].studentsInDegree[STUDENT_BQN] -= 1;
         
     } else if (a.actionCode == OBTAIN_PUBLICATION) {
-        g->unis[currentPlayer].publications++;
+        action b;
+        b.actionCode = START_SPINOFF;
+        assert(isLegalAction(g,b)&&"Tried to obtain an illegal publication!");
+        //Updating player data -- test if prestige changes hands
+        g->uniData[player].publicationsCount++;
+        if (g->uniData[player].publicationsCount >
+            g->uniData[getMostPublications(g)].publicationsCount) {
+            
+            g->uniData[getMostPublications(g)].KPICount -= MOST_PUBS_KPI;
+            g->mostPubsPlayer = player;
+            g->uniData[player].KPICount += MOST_PUBS_KPI;
+        }
         
-        g->unis[currentPlayer].studentCount[STUDENT_MJ]--;
-        g->unis[currentPlayer].studentCount[STUDENT_MMONEY]--;
-        g->unis[currentPlayer].studentCount[STUDENT_MTV]--;
+        //Updating resources
+        g->uniData[player].studentsInDegree[STUDENT_MJ] -= 1;
+        g->uniData[player].studentsInDegree[STUDENT_MTV] -= 1;
+        g->uniData[player].studentsInDegree[STUDENT_MMONEY] -= 1;
+        
+        
     } else if (a.actionCode == OBTAIN_IP_PATENT) {
-        g->unis[currentPlayer].ipPatents++;
+        action b;
+        b.actionCode = START_SPINOFF;
+        assert(isLegalAction(g,b) && "Tried to obtain an illegal patent!");
+        //Updating player data
+        g->uniData[player].patentCount++;
         
-        g->unis[currentPlayer].studentCount[STUDENT_MJ]--;
-        g->unis[currentPlayer].studentCount[STUDENT_MMONEY]--;
-        g->unis[currentPlayer].studentCount[STUDENT_MTV]--;
+        //Updating KPI
+        g->uniData[player].KPICount += KPI_PER_PATENT;
+        //Updating resources
+        g->uniData[player].studentsInDegree[STUDENT_MJ] -= 1;
+        g->uniData[player].studentsInDegree[STUDENT_MTV] -= 1;
+        g->uniData[player].studentsInDegree[STUDENT_MMONEY] -= 1;
         
     } else if (a.actionCode == RETRAIN_STUDENTS) {
-        // use a->retrainTo and a->retrainFrom
-        // use these value to subtract currentPlayer’s ‘retrainFrom’ degree
-        // and add to the ‘retrainTo’
-        int exchangeRate =  getExchangeRate (g, currentPlayer,
-                                             a.retrainFrom, a.retrainTo);
+        assert(a.retrainFrom > STUDENT_THD && a.retrainFrom <= STUDENT_MMONEY && "Student types to retrain must be legal!");
+        assert(a.retrainTo >= STUDENT_THD && a.retrainTo <= STUDENT_MMONEY && "Student types to retrain must be legal!");
+        assert(isLegalAction(g,a)&&"Tried to retrain students illegally!");
+        //Calculating exchange rate
+        degree tradeFrom = a.retrainFrom;
+        degree tradeTo = a.retrainTo;
         
-        g->unis[currentPlayer].studentCount[a.retrainFrom] -= exchangeRate;
-        g->unis[currentPlayer].studentCount[a.retrainTo]++;
+        //Cost is how many students of degree tradeFrom are needed for one of degree tradeTo
+        int cost = getExchangeRate(g, player, tradeFrom, tradeTo);
+        
+        //Subtracting number of students traded
+        g->uniData[player].studentsInDegree[tradeFrom] -= cost;
+        
+        //Adding one student of degree tradeTo
+        g->uniData[player].studentsInDegree[tradeTo]++;
+        
     }
-    
+    //not checking if victory conditions have been met, as this should be done by playGame function
 }
 
-
 /* **** Functions which GET data about the Game aka GETTERS **** */
-//isSea
+
 // true if the region is not one of the land regions of knowledge island
 int isSea (Game g, region r) {
-    int sea;
-    
-    //The region will be sea if:
-    //    -The x coord is equal to 3 or -3
-    //    -The y coord is equal to 3 or -3
-    //    -The region is (1,2), (2,1), (-1, -2) or (-2, -1)
-    if ((r.x >= RIGHT_SEA_BOUNDRY) || (r.x <= LEFT_SEA_BOUNDRY)) {
-        sea = TRUE;
-    } else if ((r.y >= RIGHT_SEA_BOUNDRY) || (r.y <= LEFT_SEA_BOUNDRY)) {
-        sea = TRUE;
-    } else if (((r.x == 1) && (r.y == 2))  ||
-               ((r.x == 2) && (r.y == 1))   ||
-               ((r.x == -1) && (r.y == -2)) ||
-               ((r.x == -2) && (r.y == -1))) {
-        sea = TRUE;
+    assert(g != NULL&&"A test gave us a null game!");
+    return !isLand(r);
+}
+
+// what type of students are produced by the specified land region?
+// see degree discipline codes above
+degree getDegree (Game g, region r) {
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(isLand(r) && "A test asked for the degree type of a nonexistant tile");
+    return g->map[regionToIndex(r)].degreeType;
+}
+
+// what dice value produces students in the specified land region?
+// 2..12
+int getDiceValue (Game g, region r) {
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(isLand(r) && "A test asked for the dice value of a nonexistant tile");
+    return g->map[regionToIndex(r)].hexValue;
+}
+
+// which university currently has the prestige award for the most ARCs?
+// this deemed to be UNI_C at the start of the Game.
+uni getMostARCs (Game g) {
+    assert(g != NULL&&"A test gave us a null game!");
+    return g->mostArcsPlayer;
+}
+
+// which university currently has the prestige award for the most pubs?
+// this is deemed to be UNI_C at the start of the Game.
+uni getMostPublications (Game g) {
+    assert(g != NULL&&"A test gave us a null game!");
+    return g->mostPubsPlayer;
+}
+
+// return the current turn number of the Game -1,0,1, ..
+int getTurnNumber (Game g) {
+    assert(g != NULL&&"A test gave us a null game!");
+    return g->currentTurn;
+}
+
+// return the player id of the player whose turn it is
+// the result of this function is UNI_C during Terra Nullis
+uni getWhoseTurn (Game g) {
+    assert(g != NULL&&"A test gave us a null game!");
+    int whoseTurn;
+    if (g->currentTurn == TERRA_NULLIS) {
+        whoseTurn = UNI_C;
     } else {
-        sea = FALSE;
+        whoseTurn = (g->currentTurn)%NUM_UNIS;
     }
-    return sea;
+    return whoseTurn;
+}
+
+// return the contents of the given vertex (ie campus code or
+// VACANT_VERTEX)
+int getCampus (Game g, vertex v) {
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(isVertex(v)&&"A test asked us to locate a nonexistant vertex");
+    return g->vertices[vertexToIndex(v)];
+}
+
+// the contents of the given edge (ie ARC code or vacent ARC)
+int getARC (Game g, arc a) {
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(isArc(a)&&"A test asked us to locate a nonexistant arc");
+    return g->arcs[arcToIndex(a)];
 }
 
 // returns TRUE if it is legal for the current player
@@ -342,962 +509,589 @@ int isSea (Game g, region r) {
 // before the Game has started.
 // It is not legal for a player to make the moves OBTAIN_PUBLICATION
 // or OBTAIN_IP_PATENT (they can make the move START_SPINOFF)
-//isLegalAction
+//
+
 int isLegalAction (Game g, action a) {
-    //Legality booleans (maybe change these to chars if memory is tight):
-    int legalAction;
-    
-    //Checks action code exists:
-    assert(a.actionCode >= PASS && a.actionCode <= MAX_LEGAL_ACTION);
-    
-    //Makes sure player doesn't make any action before the game has
-    //started:
-    if (g->currentTurn == TERRA_NULLIUS && a.actionCode != PASS){
-        legalAction = FALSE;
-    } else if(a.actionCode == BUILD_CAMPUS){
-        printf("----------NOW TESTING CAMPUS CONSTRUCTION----------\n\n");
-        legalAction = isLegalCampus(g, a);
-    } else if(a.actionCode == BUILD_GO8){
-        printf("--------NOW TESTING GO8 CAMPUS CONSTRUCTION--------\n\n");
-        legalAction = isLegalGO8(g, a);
-    } else if(a.actionCode == CREATE_ARC){
-        printf("---------NOW TESTING ARC GRANT CONSTRUCTION--------\n\n");
-        legalAction = isLegalArcBuild(g, a);
-    } else if(a.actionCode == START_SPINOFF){
-        printf("----------NOW TESTING CREATION OF SPINOFF----------\n\n");
-        legalAction = isLegalSpinoff(g, a);
-    } else if(a.actionCode == RETRAIN_STUDENTS){
-        printf("---------NOW TESTING RETRAINING OF STUDENTS--------\n\n");
-        legalAction = isLegalRetrain(g, a);
-    } else if (a.actionCode == PASS){
-        legalAction = TRUE;
-    } else {
-        legalAction = FALSE;
+    assert(g != NULL&&"A test gave us a null game!");
+    if(!(a.actionCode >=PASS && a.actionCode <= RETRAIN_STUDENTS)) {
+        printf("Action code does not exist!");
     }
-    
-    return legalAction;
-}
-
-//===============CHECKS LEGALITY OF CAMPUS CONSTRUCTION===============//
-//islegalcampus
-static int isLegalCampus(Game g, action a){
-    
+    int isAllowed = FALSE;
     int player = getWhoseTurn(g);
-    int legalCampusBuild;
-    
-    //Checks if the player has enough resources to buy a campus:
-    int hasResources;
-    //This can be copied into all of the other is legal tests where
-    //certain resources are spent.
-    if (g->unis[player].studentCount[STUDENT_BPS] >= 1 &&
-        g->unis[player].studentCount[STUDENT_BQN] >= 1 &&
-        g->unis[player].studentCount[STUDENT_MJ]  >= 1 &&
-        g->unis[player].studentCount[STUDENT_MTV] >= 1){
-        hasResources = TRUE;
-        printf("PASSED: Player has sufficient resources for purchase\n");
-    } else {
-        hasResources = FALSE;
-        printf("FAILED: Player has sufficient resources for purchase\n");
+    //This gets the amount of resources the player has
+    int i = 0;
+    int cardsInHand[NUM_DEGREES];
+    while (i< NUM_DEGREES) {
+        cardsInHand[i] = getStudents(g, player, i);
+        i++;
     }
-    
-    //Checks if the specified vertex is a land vertex:
-    int campusOnLand;
-    //If all three vertexes are in the sea this will return
-    //a 0 for landVertex.
-    campusOnLand = !(isSea(g, a.targetVertex.region0) &&
-                     isSea(g, a.targetVertex.region1) &&
-                     isSea(g, a.targetVertex.region2));
-    
-    if(campusOnLand){
-        printf("PASSED: Desired location is on land\n");
-    } else {
-        printf("FAILED: Desired location is on land\n");
-    }
-    
-    //Checks if the desired vertex is next to one of that
-    //player's arc grants:
-    int arcNextToVertex = FALSE;
-    int arcCount  = 0;
-    //Checks each of a player's arc grants to see if they neighbour
-    //the desired vertex for building:
-    while (arcCount < MAX_ARCS && arcNextToVertex == FALSE){
-        region arcRegion0 = g->arcGrants[player][arcCount].region0;
-        region arcRegion1 = g->arcGrants[player][arcCount].region1;
-        
-        if(vertexSharesRegion(a.targetVertex, arcRegion0) &&
-           vertexSharesRegion(a.targetVertex, arcRegion1)){
-            arcNextToVertex = TRUE;
+    if (a.actionCode == PASS) {
+        isAllowed = TRUE;
+    } else if (a.actionCode == BUILD_CAMPUS) {
+        vertex buildHere = a.targetVertex;
+        //checks if they have enough resources
+        int resource = TRUE;
+        i = 0;
+        int campusCost[NUM_DEGREES] = CAMPUS_COST;
+        while (i< NUM_DEGREES) {
+            resource =  resource && (cardsInHand[i] >= campusCost[i]);
+            i++;
         }
-        arcCount++;
-    }
-    
-    if(arcNextToVertex){
-        printf("PASSED: Desired location is next to a player's ARC grant\n");
-    } else {
-        printf("FAILED: Desired location is next to a player's ARC grant\n");
-    }
-    
-    //Checks if the desired vertex is vacant and there are no
-    //campuses on neighbouring vertexes: (I'm not sure whether you are
-    //able to build neighbouring campuses to your own so I have set it
-    //up so you can't. This isn't hard to fix, D.P)
-    int legalVertex = TRUE;
-    int playerCount = 0;
-    int campusCount = 0;
-    //Checks legality of a vertex for every player's campuses.
-    while(playerCount < NUM_UNIS){
-        //Checks whether the target campus and all of the other campuses
-        //on the board share two regions. If they do then legalCampus will
-        //be false.
-        while(campusCount < MAX_CAMPUSES && legalVertex == TRUE){
-            region campusRegion0 = g->campuses[playerCount][campusCount].region0;
-            region campusRegion1 = g->campuses[playerCount][campusCount].region1;
-            region campusRegion2 = g->campuses[playerCount][campusCount].region1;
-            
-            if(vertexSharesRegion(a.targetVertex,campusRegion0)
-               && vertexSharesRegion(a.targetVertex,campusRegion1)
-               && vertexSharesRegion(a.targetVertex,campusRegion2)) {
-                legalVertex = FALSE;
+        int buildable = FALSE;
+        int arcFound = FALSE;
+        //checks if vertex is valid
+        if (isVertex(buildHere)==TRUE) {
+            //checks if the vertex is vacant
+            buildable = (g->vertices[vertexToIndex(buildHere)] == VACANT_VERTEX);
+            i = 0;
+            int adj;
+            //checks for adjacent vertices being vacant
+            while (i < EDGES_PER_VERTEX) {
+                adj = adjVertexToVertex(buildHere,i);
+                if (adj != INVALID) {
+                    buildable = buildable && (g->vertices[adj]==VACANT_VERTEX);
+                }
+                i++;
             }
-            campusCount++;
-        }
-        playerCount++;
-    }
-    
-    if(legalVertex){
-        printf("PASSED: Desired location has no adjacent campuses\n");
-    } else {
-        printf("FAILED: Desired location has no adjacent campuses\n");
-    }
-    
-    legalCampusBuild = hasResources && campusOnLand &&
-    arcNextToVertex && legalVertex;
-    
-    if(legalCampusBuild){
-        printf("\n---------------------TEST PASSED-------------------\n\n");
-    } else {
-        printf("\n---------------------TEST FAILED-------------------\n\n");
-    }
-    
-    return legalCampusBuild;
-}
-
-//=============CHECKS LEGALITY OF GO8 CAMPUS CONSTRUCTION=============//
-//This is very similar to isLegalCampus but simpler. Refer to the
-//function above for more detailed comments.
-static int isLegalGO8(Game g, action a){
-    
-    int player = getWhoseTurn(g);
-    int legalGO8Build;
-    
-    //Checks if the player has enough resources to buy a GO8 campus:
-    int hasResources;
-    if (g->unis[player].studentCount[STUDENT_MJ]     >= 2 &&
-        g->unis[player].studentCount[STUDENT_MMONEY] >= 3) {
-        hasResources = TRUE;
-        printf("PASSED: Player has sufficient resources for purchase\n");
-    } else {
-        hasResources = FALSE;
-        printf("FAILED: Player has sufficient resources for purchase\n");
-    }
-    
-    //Checks that there are less than 8 total GO8 campuses. There
-    //can only be a maximum of 8:
-    int availableGO8 = FALSE;
-    if (sumArray(g->numberOfGO8, NUM_UNIS) < MAX_GO8S){
-        availableGO8 = TRUE;
-    }
-    
-    if(availableGO8){
-        printf("PASSED: There are less than 8 GO8 campuses on the board\n");
-    } else {
-        printf("FAILED: There are less than 8 GO8 campuses on the board\n");
-    }
-    
-    //Checks that there is a campus owned by that player on the
-    //target vertex:
-    int campusToUpgrade = FALSE;
-    int campusCount = 0;
-    while(campusCount < MAX_CAMPUSES && campusToUpgrade == FALSE){
-        region campusRegion0 = g->campuses[player][campusCount].region0;
-        region campusRegion1 = g->campuses[player][campusCount].region1;
-        region campusRegion2 = g->campuses[player][campusCount].region1;
-        
-        if(vertexSharesRegion(a.targetVertex, campusRegion0)
-           && vertexSharesRegion(a.targetVertex, campusRegion1)
-           && vertexSharesRegion(a.targetVertex, campusRegion2)) {
-            campusToUpgrade = TRUE;
-        }
-        campusCount++;
-    }
-    
-    if(campusToUpgrade){
-        printf("PASSED: Desired location has a campus owned by player\n");
-    } else {
-        printf("FAILED: Desired location has a campus owned by player\n");
-    }
-    
-    legalGO8Build = hasResources && availableGO8 && campusToUpgrade;
-    
-    if(legalGO8Build){
-        printf("\n---------------------TEST PASSED-------------------\n\n");
-    } else {
-        printf("\n---------------------TEST FAILED-------------------\n\n");
-    }
-    
-    return legalGO8Build;
-}
-
-//==============CHECKS LEGALITY OF ARC GRANT CONSTRUCTION=============//
-static int isLegalArcBuild(Game g, action a){
-    
-    int player = getWhoseTurn(g);
-    int legalArcBuild;
-    
-    //Checks if the player has enough resources to buy an arc grant:
-    int hasResources;
-    if (g->unis[player].studentCount[STUDENT_BQN] > 0 &&
-        g->unis[player].studentCount[STUDENT_BPS] > 0) {
-        hasResources = TRUE;
-        printf("PASSED: Player has sufficient resources for purchase\n");
-    } else {
-        hasResources = FALSE;
-        printf("FAILED: Player has sufficient resources for purchase\n");
-    }
-    
-    //Checks that the desired location isn't in the sea:
-    int arcOnLand;
-    //If all three vertexes are in the sea this will return
-    //a 0 for landVertex.
-    arcOnLand = !(isSea(g, a.targetARC.region0) &&
-                  isSea(g, a.targetARC.region1));
-    
-    if(arcOnLand){
-        printf("PASSED: Desired build location is on land\n");
-    } else {
-        printf("FAILED: Desired build location is on land\n");
-    }
-    
-    //Checks that the desired location is free:
-    int locationAvailable = TRUE;
-    int playerCount = 0;
-    int arcCount = 0;
-    while(playerCount < NUM_UNIS){
-        //Checks whether the target arc and all of the other arcs
-        //on the board share two regions. If they do then locationAvailabe
-        //will be false. This also covers a player's own arc grants.
-        while(arcCount < MAX_ARCS && locationAvailable == TRUE){
-            region arcRegion0 = g->arcGrants[playerCount][arcCount].region0;
-            region arcRegion1 = g->arcGrants[playerCount][arcCount].region1;
-            
-            if(arcSharesRegion(a.targetARC, arcRegion0)
-               && arcSharesRegion(a.targetARC, arcRegion1)) {
-                locationAvailable = FALSE;
+            //checks for adjacent arcs having at least one owned
+            i = 0;
+            while (i < EDGES_PER_VERTEX && !arcFound) {
+                adj = adjArcToVertex(buildHere,i);
+                if (adj != INVALID) {
+                    arcFound = arcFound || (g->arcs[adj]==player+ARC_A);
+                }
+                i++;
             }
-            arcCount++;
         }
-        playerCount++;
-    }
-    
-    if(locationAvailable){
-        printf("PASSED: Desired location is available for ARC construction\n");
-    } else {
-        printf("FAILED: Desired location is available for ARC construction\n");
-    }
-    
-    //Checks that the desired arc connects to either a campus or other
-    //arc grant:
-    int nextToInfrastructure;
-    
-    int arcNextToCampus = FALSE;
-    int campusCount  = 0;
-    //Checks each of a player's campuses to see if they neighbour
-    //the desired line for building:
-    while (campusCount < MAX_CAMPUSES){
-        region campusRegion0 = g->campuses[player][campusCount].region0;
-        region campusRegion1 = g->campuses[player][campusCount].region1;
-        region campusRegion2 = g->campuses[player][campusCount].region1;
-        
-        if(arcSharesRegion(a.targetARC, campusRegion0)
-           && arcSharesRegion(a.targetARC, campusRegion1)) {
-            arcNextToCampus = TRUE;
-        } else if(arcSharesRegion(a.targetARC, campusRegion1)
-                  && arcSharesRegion(a.targetARC, campusRegion2)){
-            arcNextToCampus = TRUE;
-        } else if(arcSharesRegion(a.targetARC, campusRegion0)
-                  && arcSharesRegion(a.targetARC, campusRegion2)){
-            arcNextToCampus = TRUE;
+        if ((buildable == TRUE) && (resource == TRUE) && (arcFound == TRUE)) {
+            isAllowed = TRUE;
         }
-        
-        campusCount++;
-    }
-    
-    //Check that an arc connects and arc:
-    int arcNextToArc = FALSE;
-    
-    arcCount = 0;
-    
-    //Checks if two arcs share a vertex by testing whether the two
-    //uncommon regions are or aren't adjacent.
-    while(arcCount < MAX_ARCS && arcNextToArc == FALSE){
-        region arcRegion0 = g->arcGrants[player][arcCount].region0;
-        region arcRegion1 = g->campuses[player][arcCount].region1;
-        
-        if(regionsAreEqual(a.targetARC.region0, arcRegion0)
-           && regionsAreAdjacent(a.targetARC.region1, arcRegion1)){
-            arcNextToArc = TRUE;
-        } else if(regionsAreEqual(a.targetARC.region1, arcRegion0)
-                  && regionsAreAdjacent(a.targetARC.region0, arcRegion1)){
-            arcNextToArc = TRUE;
-        } else if(regionsAreEqual(a.targetARC.region0, arcRegion1)
-                  && regionsAreAdjacent(a.targetARC.region1, arcRegion0)){
-            arcNextToArc = TRUE;
-        } else if(regionsAreEqual(a.targetARC.region1, arcRegion1)
-                  && regionsAreAdjacent(a.targetARC.region0, arcRegion0)){
-            arcNextToArc = TRUE;
+    } else if (a.actionCode== CREATE_ARC) {
+        arc buildHere = a.targetARC;
+        int resource = TRUE;
+        i =  0;
+        int arcCost[NUM_DEGREES] = ARC_COST;
+        while (i< NUM_DEGREES) {
+            resource =  resource && (cardsInHand[i] >= arcCost[i]);
+            i++;
         }
-        arcCount++;
-    }
-    
-    
-    //If either of these, then nextToInfrastructure will be true.
-    nextToInfrastructure = arcNextToArc || arcNextToCampus;
-    
-    if(nextToInfrastructure){
-        printf("PASSED: Desired location has adjacent infrastructure owned by player\n");
-    } else {
-        printf("FAILED: Desired location has adjacent infrastructure owned by player\n");
-    }
-    
-    legalArcBuild = hasResources && arcOnLand && locationAvailable
-    && nextToInfrastructure;
-    
-    if(legalArcBuild){
-        printf("\n---------------------TEST PASSED-------------------\n\n");
-    } else {
-        printf("\n---------------------TEST FAILED-------------------\n\n");
-    }
-    
-    return legalArcBuild;
-}
-
-//================CHECKS LEGALITY OF CREATING A SPINOFF===============//
-int isLegalSpinoff(Game g, action a){
-    
-    int player = getWhoseTurn(g);
-    int legalSpinoff;
-    
-    //Checks if the player has enough resources to buy a spinoff:
-    int hasResources;
-    if (g->unis[player].studentCount[STUDENT_MJ]  > 0 &&
-        g->unis[player].studentCount[STUDENT_MTV] > 0 &&
-        g->unis[player].studentCount[STUDENT_MTV] > 0){
-        hasResources = TRUE;
-        printf("PASSED: Player has sufficient resources for purchase\n");
-    } else {
-        hasResources = FALSE;
-        printf("FAILED: Player has sufficient resources for purchase\n");
-    }
-    
-    legalSpinoff = hasResources;
-    
-    if(legalSpinoff){
-        printf("\n---------------------TEST PASSED-------------------\n\n");
-    } else {
-        printf("\n---------------------TEST FAILED-------------------\n\n");
-    }
-    
-    return legalSpinoff;
-}
-
-//===============CHECKS LEGALITY OF RETRAINING STUDENTS===============//
-int isLegalRetrain(Game g, action a){
-    
-    int player = getWhoseTurn(g);
-    int exchangeRate = getExchangeRate(g, player, a.retrainFrom, a.retrainTo);
-    int legalRetrain;
-    
-    //Ensures that the number of students that a player wants to retrain
-    //are in a 3 to 1 (2 to 1 if player has retrain centre) ratio:
-    int retrainType = a.retrainFrom;
-    int canTrade;
-    
-    
-    if((g->unis[player].studentCount[retrainType] >= exchangeRate) &&
-       (retrainType != STUDENT_THD)) {
-        canTrade = TRUE;
-        printf("PASSED: Player has enough students to trade\n");
-    } else {
-        canTrade = FALSE;
-        printf("FAILED: Player has enough students to trade\n");
-    }
-    
-    legalRetrain = canTrade;
-    
-    if(legalRetrain){
-        printf("\n---------------------TEST PASSED-------------------\n\n");
-    } else {
-        printf("\n---------------------TEST FAILED-------------------\n\n");
-    }
-    
-    return legalRetrain;
-}
-
-//getDegree
-// what type of students are produced by the specified land region?
-// see degree discipline codes above
-degree getDegree (Game g, region r) {
-    //Figure out what number the region is (convert 2d coordinates to 1d coordinates.)
-    //Go to the regionResource array in game struct
-    //Return whatever is in that
-    
-    int regionNo = 0;
-    if (r.x == -2) {
-        if (r.y == 0) {
-            regionNo = g->regionResource[2];
-        } else if (r.y == 1) {
-            regionNo = g->regionResource[1];
-        } else if (r.y == 2) {
-            regionNo = g->regionResource[0];
-        }
-    } else if (r.x == -1) {
-        if (r.y == -1) {
-            regionNo = g->regionResource[6];
-        } else if (r.y == 0) {
-            regionNo = g->regionResource[5];
-        } else if (r.y == 1) {
-            regionNo = g->regionResource[4];
-        } else if (r.y == 2) {
-            regionNo = g->regionResource[3];
-        }
-    } else if (r.x == 0) {
-        if (r.y == -2) {
-            regionNo = g->regionResource[11];
-        } else if (r.y == -1) {
-            regionNo = g->regionResource[10];
-        } else if (r.y == 0) {
-            regionNo = g->regionResource[9];
-            
-        } else if (r.y == 1) {
-            regionNo = g->regionResource[8];
-        } else if (r.y == 2) {
-            regionNo = g->regionResource[7];
-        }
-    } else if (r.x == 1) {
-        if (r.y == -2) {
-            regionNo = g->regionResource[15];
-        } else if (r.y == -1) {
-            regionNo = g->regionResource[14];
-        } else if (r.y == 0) {
-            regionNo = g->regionResource[13];
-            
-        } else if (r.y == 1) {
-            regionNo = g->regionResource[12];
-        }
-    } else if (r.x == 2) {
-        if (r.y == -2) {
-            regionNo = g->regionResource[18];
-        } else if (r.y == -1) {
-            regionNo = g->regionResource[17];
-        } else if (r.y == 0) {
-            regionNo = g->regionResource[16];
-        }
-    }
-    return regionNo;
-}
-//getDiceValue
-// what dice value produces students in the specified land region?
-// 2..12
-//what number should be rolled to let the given region produce students
-int getDiceValue (Game g, region r) {
-    
-    int arrayValue = convertRegionToArray(r);
-    return g->regionDiceValue[arrayValue];
-    
-}
-//getMostARCs
-// which university currently has the prestige award for the most ARCs?
-// this deemed to be UNI_C at the start of the Game.
-uni getMostARCs (Game g) {
-    int mostArcs;
-    if (g->currentTurn == TERRA_NULLIUS ){
-        mostArcs=UNI_C;
-    } else if (g->numberOfArcs[UNI_A] > g->numberOfArcs[UNI_B] &&
-               g->numberOfArcs[UNI_A] > g->numberOfArcs[UNI_C]) {
-        mostArcs = UNI_A;
-    } else if (g->numberOfArcs[UNI_B] > g->numberOfArcs[UNI_A] &&
-               g->numberOfArcs[UNI_B] > g->numberOfArcs[UNI_C]) {
-        mostArcs = UNI_B;
-    } else if (g->numberOfArcs[UNI_C] > g->numberOfArcs[UNI_B] &&
-               g->numberOfArcs[UNI_C] > g->numberOfArcs[UNI_A]) {
-        mostArcs = UNI_C;
-    } else{
-        mostArcs = (g->previousMostArcs);    //Will only jump in if there is a draw in most arcs
-        
-    }
-    (g->previousMostArcs) = mostArcs;
-    return mostArcs;
-}
-
-// which university currently has the prestige award for the most pubs?
-// this is deemed to be UNI_C at the start of the Game.
-
-//Fixed this. Whoever wrote it before initialised mostPublications as UNI_C, then
-//assigned (g->previousMostPublications) as mostPublications, which would result as
-//previous holder always being UNI_C. Also changed the conditions because before,
-//it was comparing elements which didn’t actually contain each player’s
-//number of publications.
-//Robert Kwan
-
-//getMostPublications
-uni getMostPublications (Game g) {
-    int mostPublications;
-    
-    if (g->currentTurn == TERRA_NULLIUS ){
-        mostPublications= UNI_C;
-        
-    } else if (g->unis[UNI_A].publications > g->unis[UNI_B].publications &&
-               g->unis[UNI_A].publications > g->unis[UNI_C].publications) {
-        mostPublications = UNI_A;
-    } else if (g->unis[UNI_B].publications > g->unis[UNI_A].publications &&
-               g->unis[UNI_B].publications > g->unis[UNI_C].publications) {
-        mostPublications = UNI_B;
-    } else if (g->unis[UNI_C].publications > g->unis[UNI_A].publications &&
-               g->unis[UNI_C].publications > g->unis[UNI_B].publications) {
-        mostPublications = UNI_C;
-    } else {
-        mostPublications = (g->previousMostPublications);   //Will only jump in if there is a draw in most arcs
-    }
-    
-    (g->previousMostPublications) = mostPublications;
-    return mostPublications;
-}
-
-//getTurnNumber
-// return the current turn number of the Game -1,0,1, ..
-int getTurnNumber (Game g) {
-    return g->currentTurn;
-}
-
-//getWhoseTurn
-// return the player id of the player whose turn it is
-// the result of this function is UNI_C during Terra Nullis
-uni getWhoseTurn (Game g) {
-    int player;
-    
-    int playersTurnCalculation=((g->currentTurn+NUM_UNIS)%NUM_UNIS);
-    //added 3 because the game starts at -1. thus prevents negative numbers
-    
-    if(playersTurnCalculation==UNI_A){
-        player=UNI_A;
-    }
-    
-    if(playersTurnCalculation==UNI_B){
-        player=UNI_B;
-    }
-    
-    if(playersTurnCalculation==UNI_C){
-        player=UNI_C;
-    }
-    return player;
-}
-
-// return the contents of the given vertex (ie campus code or
-// VACANT_VERTEX)
-
-//getCampus
-int getCampus (Game g, vertex v) {
-    int output = VACANT_VERTEX;
-    int currentUniversity = UNI_A;
-    int currentVertex;
-    
-    while ((currentUniversity < NUM_UNIS) && (output == 0)) {
-        currentVertex = 0;
-        while((currentVertex < g->numberOfCampuses[currentUniversity]) &&
-              (output == 0)){
-            
-            if(verticesAreEqual(v, g->campuses[currentUniversity][currentVertex])){
-                output = currentUniversity + 1;
+        int buildable = FALSE;
+        int adjFound = FALSE;
+        //checks if arc is valid
+        if (isArc(buildHere)==TRUE) {
+            //checks if the arc is vacant
+            buildable = (g->arcs[arcToIndex(buildHere)] == VACANT_ARC);
+            i = 0;
+            int adj;
+            while (i < VERTICES_PER_EDGE) {
+                adj = adjVertexToArc(buildHere,i);
+                if (adj != INVALID) {
+                    adjFound = adjFound || (g->vertices[adj]==player+CAMPUS_A) || (g->vertices[adj]==player+GO8_CAMPUS_A);
+                }
+                i++;
             }
-            currentVertex++;
-        }
-        currentVertex = 0;
-        while (currentVertex < g->numberOfGO8[currentUniversity] &&
-               output == 0) {
-            
-            if(verticesAreEqual(v, g->GO8campuses[currentUniversity][currentVertex])){
-                output = currentUniversity + 4;
+            i = 0;
+            while (i < VERTICES_PER_EDGE*VERTICES_PER_EDGE && !adjFound) {
+                adj = adjArcToArc(buildHere,i);
+                if (adj != INVALID) {
+                    adjFound = adjFound || (g->arcs[adj]==player+ARC_A);
+                }
+                i++;
             }
-            currentVertex++;
         }
-        currentUniversity++;
+        if ((buildable == TRUE) && (resource == TRUE) && (adjFound == TRUE)) {
+            isAllowed = TRUE;
+        } else {
+            //printf("Resources %d, Adjacent %d, Vacant %d \n",resource, adjFound, buildable);
+        }
+    } else if (a.actionCode == BUILD_GO8) {
+        int resource = TRUE;
+        int existingCampus = FALSE;
+        vertex buildHere = a.targetVertex;
+        i = 0;
+        int GO8Cost[NUM_DEGREES] = GO8_COST;
+        while (i< NUM_DEGREES) {
+            resource =  resource && (cardsInHand[i] >= GO8Cost[i]);
+            i++;
+        }
+        if (isVertex(buildHere)==TRUE) {
+            //checks if the vertex is a campus belonging to the player
+            existingCampus = (g->vertices[vertexToIndex(buildHere)] == CAMPUS_A+player);
+        }
+        i = 0;
+        //counts the number of GO8 campuses
+        int GO8count = 0;
+        while (i < NUM_UNIS) {
+            GO8count += getGO8s(g,i);
+            i++;
+        }
+        if ( (GO8count < MAX_GO8_CAMPUS) && (resource ==TRUE) && (existingCampus == TRUE)) {
+            isAllowed = TRUE;
+        }
+    } else if (a.actionCode == START_SPINOFF) {
+        int resource = TRUE;
+        int spinCost[NUM_DEGREES] = SPINOFF_COST;
+        i = 0;
+        while (i< NUM_DEGREES) {
+            resource =  resource && (cardsInHand[i] >= spinCost[i]);
+            i++;
+        }
+        isAllowed = resource;
+    } else if (a.actionCode == RETRAIN_STUDENTS) {
+        degree tradeFrom = a.retrainFrom;
+        degree tradeTo = a.retrainTo;
+        if ((tradeFrom > STUDENT_THD) && (tradeFrom <= STUDENT_MMONEY) &&
+            (tradeTo >=STUDENT_THD) && (tradeTo<=STUDENT_MMONEY)) {
+            int cost = getExchangeRate(g, player, tradeFrom, tradeTo);
+            if (cardsInHand[tradeFrom] >= cost ) {
+                // Has more than or equal to the amount of cards that is needed to trade
+                isAllowed = TRUE;
+            }
+        } else {
+            isAllowed = FALSE;
+        }
+        
+    } else if (a.actionCode == OBTAIN_PUBLICATION || a.actionCode==OBTAIN_IP_PATENT) {
+        //printf("The current university tried to obtain a publication or IP patent directly \n");
+        isAllowed = FALSE;
     }
-    return output;
+    // checks if the current turn is valid, turn != -1. (as turn = -1 at the very start)
+    if (getTurnNumber(g) < 0) {
+        isAllowed = FALSE;
+    }
+    return isAllowed;
 }
 
+// --- get data about a specified player ---
 
-//getARC
-// the contents of the given edge (ie ARC code or vacant ARC)
-int getARC (Game g, arc a) {
-    int output = VACANT_ARC;
-    int currentUniversity = UNI_A;
-    int currentEdge;
-    
-    
-    while((currentUniversity < NUM_UNIS) && (output == 0)) {
-        currentEdge = 0;
-        while(currentEdge < g->numberOfArcs[currentUniversity]){
-            if(arcsAreEqual(a, g->arcGrants[currentUniversity][currentEdge])) {
-                output = currentUniversity+1;
-            }
-            currentEdge++;
-        }
-        currentUniversity++;
-    }
-    return output;
+// return the number of KPI points the specified player currently has
+int getKPIpoints (Game g, uni player) {
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(player >= UNI_A && player <= UNI_C && "Player was an illegal player");
+    return g->uniData[player].KPICount;
 }
 
-
-//getARCs
 // return the number of ARC grants the specified player currently has
-// This function gets given a specified player ie (UNI_A,UNI_B or UNI_C)
-// gets number of arc grants that player has and returns this value
 int getARCs (Game g, uni player) {
-    return g->numberOfArcs[player];
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(player >= UNI_A && player <= UNI_C && "Player was an illegal player");
+    return g->uniData[player].arcGrantCount;
 }
-//getG08s
+
 // return the number of GO8 campuses the specified player currently has
 int getGO8s (Game g, uni player) {
-    return g->numberOfGO8[player];
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(player >= UNI_A && player <= UNI_C && "Player was an illegal player");
+    return g->uniData[player].GO8Count;
 }
-//getCampuses
+
 // return the number of normal Campuses the specified player currently has
 int getCampuses (Game g, uni player) {
-    return g->numberOfCampuses[player];
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(player >= UNI_A && player <= UNI_C && "Player was an illegal player");
+    return g->uniData[player].campusCount;
 }
 
-
-//getIPs
 // return the number of IP Patents the specified player currently has
 int getIPs (Game g, uni player) {
-    return g->unis[player].ipPatents;
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(player >= UNI_A && player <= UNI_C && "Player was an illegal player");
+    return g->uniData[player].patentCount;
 }
 
-//getPublications
 // return the number of Publications the specified player currently has
 int getPublications (Game g, uni player) {
-    return g->unis[player].publications;
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(player >= UNI_A && player <= UNI_C && "Player was an illegal player");
+    return g->uniData[player].publicationsCount;
 }
 
-//getStudents
 // return the number of students of the specified discipline type
 // the specified player currently has
 int getStudents (Game g, uni player, degree discipline) {
-    return g->unis[player].studentCount[discipline];
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(player >= UNI_A && player <= UNI_C && "Player was an illegal player");
+    assert(discipline >= STUDENT_THD && discipline <= STUDENT_MMONEY && "Test gave us illegal student type!");
+    return g-> uniData[player].studentsInDegree[discipline];
 }
 
-//getExchangeRate
-// return  how many students of degree type tradeFrom
+// return how many students of degree type tradeFrom
 // the specified player would need to retrain in order to get one
 // student of degree type trainTo.  This will depend
 // on what retraining centers, if any, they have a campus at.
-int getExchangeRate (Game g, uni player,
-                     degree tradeFrom, degree tradeTo) {
-    //    int exchangeRate;
-    //
-    //
-    //    //#define NUMBER_OF_DEGREES 6
-    //    // give means we give for example 2 MJ students to get 1 BPS student
-    //    // The function asks
-    //    int give = 0;
-    //    int get = 0;
-    //    int student = STUDENT_THD;
-    //    while (student < NUMBER_OF_DEGREES) {
-    //        if (action.retrainFrom == student) {
-    //            if (campus == retrainingcenter) {
-    //                give = 2;
-    //            } else {
-    //                give =3;
-    //            }
-    //        } if (action.retrainTo == student) {
-    //            get = 1;
-    //        } student++;
-    //    }
-    //    exchangeRate = give / get;
-    //
-    //    return exchangeRate;
-    return 3;
+int getExchangeRate (Game g, uni player, degree tradeFrom, degree tradeTo) {
+    assert(g != NULL&&"A test gave us a null game!");
+    assert(player >= UNI_A && player <= UNI_C && "Player was an illegal player");
+    assert(tradeFrom >= STUDENT_THD && tradeFrom <= STUDENT_MMONEY && "Trading from nonexistant student type!");
+    assert(tradeTo >= STUDENT_THD && tradeTo <= STUDENT_MMONEY && "Trading to nonexistant student type!");
+    int rate = DEFAULT_EXCHANGE_RATE - g->uniData[player].centers[tradeFrom];
+    return rate;
 }
 
-//getKPIpoints
-int getKPIpoints (Game g, uni player){
-    int points = 0;
-    //Buildings Points
-    points = points + getCampuses(g, player) * 10;
-    points = points + getGO8s(g,  player) * 20;
-    points = points + getARCs(g, player) * 2;
-    points = points + getIPs (g, player) * 10;
-    //Prestige Points
-    
-    if(player == getMostARCs (g) ){
-        points = points + 10;
-    }
-    if(player == getMostPublications(g)){
-        points = points + 10;
-    }
-    return points;
+// Helper Functions
+
+static int isLand (region r) {
+    return (abs(r.x)<=MAX_REGION_COORD&&abs(r.y)<=MAX_REGION_COORD&&abs(r.x+r.y)<=MAX_REGION_COORD);
 }
 
-
-
-
-//HELPER FUNCTIONS
-
-
-
-
-
-//Takes in 2 vertices, checks if they are equal.
-static int verticesAreEqual(vertex a, vertex b){
-    int stage0 = FALSE;
-    int stage1 = FALSE;
-    int stage2 = FALSE;
-    int result = FALSE;
-    
-    if(regionsAreEqual(a.region0, b.region0) ||
-       regionsAreEqual(a.region0, b.region1) ||
-       regionsAreEqual(a.region0, b.region2)) {
-        //Then one of the regions is equivalent to one of the others
-        stage0 = TRUE;
-    }
-    if(regionsAreEqual(a.region1, b.region0) ||
-       regionsAreEqual(a.region1, b.region1) ||
-       regionsAreEqual(a.region1, b.region2)) {
-        //Then one of the regions is equivalent to one of the others
-        stage1 = TRUE;
-    }
-    if(regionsAreEqual(a.region2, b.region0) ||
-       regionsAreEqual(a.region2, b.region1) ||
-       regionsAreEqual(a.region2, b.region2)) {
-        //Then one of the regions is equivalent to one of the others
-        stage2 = TRUE;
-    }
-    
-    //If all three regions are equivalent, then the vertex is equivalent
-    if(stage0 == TRUE && stage1 == TRUE && stage2 == TRUE){
-        result = TRUE;
+static int isArc (arc a) {
+    int valid;
+    if (!isLand(a.region0)&&!isLand(a.region1)) {
+        valid = FALSE;
     } else {
-        result = FALSE;
-    }
-    
-    return result;
-}
-
-
-//This takes in 2 regions and outputs whether or not they are equal
-static int regionsAreEqual(region a, region b){
-    int result;
-    
-    if ((a.x == b.x) && (a.y == b.y)){
-        result = TRUE;
-    } else {
-        result = FALSE;
-    }
-    
-    return result;
-}
-
-static int sumArray(int a[], int num_elements) {
-    int i, sum=0;
-    for (i=0; i<num_elements; i++) {
-        sum = sum + a[i];
-    }
-    return sum;
-}
-
-
-//Converts a region number (from our array) to a region type.
-//i.e. it converts to badly drawn co-ordinates
-static region convertToRegion(Game g, int regionNumber){
-    //If colN, then region.x = N-2
-    //If rowM, then region.y = 2-M
-    
-    int colNum;
-    int rowNum;
-    int columnStart[6] = { COL_0_START, COL_1_START, COL_2_START, COL_3_START,COL_4_START, COL_END };
-    region r;
-    
-    int currentColumn = 0;
-    
-    //changed since Tuesday’s Lab. Up to date as of 6:00 14-05-2013
-    //Changed the if statement and the colNum and rowNum assignments.
-    //Didn’t give the right values before, but now they do; I checked
-    //Robert Kwan
-    while(currentColumn < 6){
-        
-        if((regionNumber >= columnStart[currentColumn]) &&
-           (regionNumber < columnStart[currentColumn+1])){
-            colNum = currentColumn;
-            rowNum = regionNumber - columnStart[currentColumn];
-            
-            if(colNum == 3){
-                rowNum += 1;
-            }else if(colNum == 4){
-                rowNum += 2;
-            }
+        int xDiff = a.region0.x - a.region1.x;
+        int yDiff = a.region0.y - a.region1.y;
+        if ((xDiff == 0 && abs(yDiff)==1)||
+            (yDiff == 0 && abs(xDiff)==1)||
+            (xDiff * yDiff == -1)) {
+            valid = TRUE;
+        } else {
+            valid = FALSE;
         }
-        currentColumn++;
-        
     }
-    
-    r.x = colNum-2;
-    r.y = 2 - rowNum;
-    
-    return r;
-    
+    return valid;
 }
 
-static int convertRegionToArray(region r){
-    //col number is N = region.x + 2
-    //row number is M = 2- region.y
-    int colNum;
-    int rowNum;
-    int arrayValue;
-    int columnStart[5] = { COL_0_START, COL_1_START, COL_2_START, COL_3_START,COL_4_START };
-    
-    colNum = r.x + 2;
-    rowNum = 2 - r.y;
-    
-    arrayValue = columnStart[colNum] + rowNum;
-    
-    if(colNum == 3){
-        arrayValue = arrayValue - 1;
-    } else if(colNum == 4){
-        arrayValue = arrayValue - 2;
-    }
-    
-    return arrayValue;
-}
-
-
-
-
-static int arcSharesRegion(arc a, region b) {
-    return (regionsAreEqual(a.region0, b) ||
-            regionsAreEqual(a.region1, b) );
-}
-
-static int vertexSharesRegion(vertex a, region b) {
-    return (regionsAreEqual(a.region0, b) ||
-            regionsAreEqual(a.region1, b) ||
-            regionsAreEqual(a.region2, b) );
-}
-
-
-
-static int arcsAreEqual(arc a, arc b){
-    int result;
-    
-    if((regionsAreEqual(a.region0, b.region0) && regionsAreEqual(a.region1, b.region1))){
-        
-        result = TRUE;
-    } else if(regionsAreEqual(a.region0, b.region1) && regionsAreEqual(a.region1, b.region0)){
-        result = TRUE;
+static int isVertex (vertex v) {
+    int valid;
+    if (!(isLand(v.region0)||isLand(v.region1)||isLand(v.region2))) {
+        valid = FALSE;
     } else {
-        result = FALSE;
+        valid = TRUE;
+        int x0, x1, x2;
+        int y0, y1, y2;
+        x0 = v.region0.x;
+        x1 = v.region1.x;
+        x2 = v.region2.x;
+        y0 = v.region0.y;
+        y1 = v.region1.y;
+        y2 = v.region2.y;
+        if (checkOrder(x0,x1,x2)) {
+            if (checkOrder(y0,y2,y1) ||checkOrder (y1,y2,y0) ) {
+                valid = TRUE;
+            } else {
+                valid = FALSE;
+            }
+        } else if (checkOrder(x0,x2,x1)) {
+            if (checkOrder(y0,y1,y2) ||checkOrder (y2,y1,y0) ) {
+                valid = TRUE;
+            } else {
+                valid = FALSE;
+            }
+        } else if (checkOrder(x2,x1,x0)) {
+            if (checkOrder(y2,y0,y1) ||checkOrder (y1,y0,y2) ) {
+                valid = TRUE;
+            } else {
+                valid = FALSE;
+            }
+        } else {
+            valid = FALSE;
+        }
+        if (abs(x0-x1+y0-y1)>1||abs(x0-x2+y0-y2)>1||abs(x2-x1+y2-y1)>1) {
+            valid = FALSE;
+        }
     }
-    
-    return result;
+    return valid;
 }
 
-//This function checks whether two regions are adjacent by seeing if they
-//a) Share either an x or y coordinate.
-//b) Share an adjacent x or y coordinate.
-//I built this using the coordinates system Richard provided us [D.P]
-static int regionsAreAdjacent(region a, region b){
-    int regionsAdjacent;
-    int xCoordinatesAdjacent = 0;
-    int yCoordinatesAdjacent = 0;
-    
-    if((a.x == b.x)||(a.x + 1 == b.x)||(a.x - 1 == b.x)){
-        xCoordinatesAdjacent = TRUE;
-    }
-    
-    if((a.y == b.y)||(a.y + 1 == b.y)||(a.y - 1 == b.y)){
-        yCoordinatesAdjacent = TRUE;
-    }
-    
-    if((xCoordinatesAdjacent == TRUE) && (yCoordinatesAdjacent == TRUE)){
-        regionsAdjacent = TRUE;
-    } else {
-        regionsAdjacent = FALSE;
-    }
-    
-    return regionsAdjacent;
+static int checkOrder (int a, int b, int c) {
+    return (a==b && abs(a-c)==1 && abs(b-c)==1);
 }
 
-static void setStartingCampuses(Game g, uni player) {
-    vertex firstCampus;
-    vertex secondCampus;
-    
-    if (player == UNI_A) {
-        firstCampus.region0 = newRegion(0,2);
-        firstCampus.region1 = newRegion(0,3);
-        firstCampus.region2 = newRegion(-1,3);
-        
-        secondCampus.region0 = newRegion(0,-2);
-        secondCampus.region1 = newRegion(0,-3);
-        secondCampus.region2 = newRegion(1,-3);
-        
-    } else if (player == UNI_B) {
-        firstCampus.region0 = newRegion(-3,3);
-        firstCampus.region1 = newRegion(-2,2);
-        firstCampus.region2 = newRegion(-3,2);
-        
-        secondCampus.region0 = newRegion(3,-3);
-        secondCampus.region1 = newRegion(2,-2);
-        secondCampus.region2 = newRegion(3,-2);
-    } else if (player == UNI_C) {
-        firstCampus.region0 = newRegion(-2,0);
-        firstCampus.region1 = newRegion(-2,-1);
-        firstCampus.region2 = newRegion(-3,0);
-        
-        secondCampus.region0 = newRegion(3,0);
-        secondCampus.region1 = newRegion(2,0);
-        secondCampus.region2 = newRegion(2,1);
+//INDEX finding functions
+
+static int regionToIndex (region r) {
+    assert(isLand(r)==TRUE);
+    int index = 0;
+    int x = -MAX_REGION_COORD;
+    while (x < r.x) {
+        //adds the maximum coordinate in column minus minimum coord in column
+        index += (maxYCoord(x,MAX_REGION_COORD)-minYCoord(x, MAX_REGION_COORD)+1);
+        x++;
     }
-    
-    g->campuses[player][0] = firstCampus;
-    g->campuses[player][1] = secondCampus;
+    int y = minYCoord(x, MAX_REGION_COORD);
+    while (y < r.y) {
+        index++;
+        y++;
+    }
+    return index;
 }
 
-static region newRegion(int x, int y) {
+static int arcToIndex (arc a) {
+    assert(isArc(a)==TRUE);
+    int index = 0;
+    int ax = a.region0.x+a.region1.x;
+    int ay = a.region0.y+a.region1.y;
+    int x = -MAX_ARC_COORD;
+    while (x < ax) {
+        //adds the maximum coordinate in column minus minimum coord in column
+        if (x%2==0) {
+            index += (maxYCoord(x,MAX_ARC_COORD)-minYCoord(x, MAX_ARC_COORD))/2+1;
+        } else {
+            index += (maxYCoord(x,MAX_ARC_COORD)-minYCoord(x, MAX_ARC_COORD)+1);
+        }
+        x++;
+    }
+    int y = minYCoord(x, MAX_ARC_COORD);
+    while (y < ay) {
+        index++;
+        if (x%2==0) {
+            y+=2;
+        } else {
+            y++;
+        }
+    }
+    return index;
+}
+
+static int vertexToIndex (vertex v) {
+    int index = 0;
+    int x = -MAX_REGION_COORD;
+    int vx = max(v.region0.x,max(v.region1.x,v.region2.x));
+    int vy = max(v.region0.y+v.region1.y,max(v.region0.y+v.region2.y,v.region2.y+v.region1.y));
+    while (x < vx) {
+        //adds the maximum coordinate in column minus minimum coord in column
+        index += (maxYCoord(2*x-1,6)-minYCoord(2*x-1, 5)+1);
+        x++;
+    }
+    int y = minYCoord(2*x-1, 5);
+    assert(isVertex(v)==TRUE);
+    while (y < vy) {
+        index++;
+        y++;
+    }
+    return index;
+}
+
+static region indexToRegion (int index) {
+    int pointIndex = 0;
+    int x = -MAX_REGION_COORD;
+    int yRange = maxYCoord(x,MAX_REGION_COORD)-minYCoord(x, MAX_REGION_COORD)+1;
+    while (pointIndex + yRange <= index ) {
+        x++;
+        pointIndex += yRange;
+        //adds the maximum coordinate in column minus minimum coord in column
+        yRange = (maxYCoord(x,MAX_REGION_COORD)-minYCoord(x, MAX_REGION_COORD)+1);
+    }
+    int y = minYCoord(x, MAX_REGION_COORD);
+    while (pointIndex < index) {
+        pointIndex++;
+        y++;
+    }
     region r;
+    assert(isLand(r)==TRUE);
     r.x = x;
     r.y = y;
     return r;
 }
 
+static vertexIndex adjVertexToRegion (region r, int i) {
+    assert(isLand(r)==TRUE);
+    int vx;
+    int vy;
+    if (i>=3) {
+        vx = r.x+1;
+        vy = r.y*2 + (i%3) - 1;
+    } else {
+        vy = r.y*2 + (i%3);
+        vx = r.x;
+    }
+    int x = -MAX_REGION_COORD;
+    int index = 0;
+    while (x < vx) {
+        //adds the maximum coordinate in column minus minimum coord in column
+        index += (maxYCoord(2*x-1,6)-minYCoord(2*x-1, 5)+1);
+        x++;
+    }
+    int y = minYCoord(2*x-1, 5);
+    while (y < vy) {
+        index++;
+        y++;
+    }
+    if ((x<-MAX_REGION_COORD)||(x>(MAX_REGION_COORD+1))|| (y>maxYCoord(2*x-1,6))||(y<minYCoord(2*x-1, 5))) {
+        index = INVALID;
+    }
+    return index;
+}
 
-// dont mind this, this is for me, but i couldnt save it somewhere else
-/*boundry = 3;
- maxmax=30
- exchange = 2;
- coordinate (0) = 0;
- vertex (0) = 0;
- while (coordinate (0) <18 && maxmax <30) {
- if (trainingcentre == coordinate (0)){
- while (vertex (0) < boundry) {
- if (vertex (0) == campus){
- exchange = 2;
- }vertex(0) ++;
- }
- } coordinate(0) ++;
- boundry = boundry+2;
- }*/
+static vertexIndex adjVertexToVertex (vertex v, int i) {
+    assert(isVertex(v)==TRUE);
+    int vx = max(v.region0.x,max(v.region1.x,v.region2.x));
+    int vy = max(v.region0.y+v.region1.y,max(v.region0.y+v.region2.y,v.region2.y+v.region1.y));
+    if (i==0) {
+        vy--;
+    } else if (i==1) {
+        vy++;
+    } else if (i==2) {
+        if (vy%2==0) {
+            vy--;
+            vx++;
+        } else {
+            vy++;
+            vx--;
+        }
+    }
+    
+    region r0,r1,r2;
+    if (vy %2 ==0 ) {
+        r0.y = vy/2;
+        r1.y = vy/2;
+        r2.y = vy/2 - 1;
+        r0.x = vx;
+        r1.x = vx-1;
+        r2.x = vx;
+    } else {
+        r0.y = (vy+1)/2;
+        r1.y = (vy-1)/2;
+        r2.y = (vy-1)/2;
+        r0.x = vx-1;
+        r1.x = vx-1;
+        r2.x = vx;
+    }
+    vertex adjV = {.region0 = r0, .region1 = r1, .region2 = r2};
+    int index;
+    if (isVertex(adjV)) {
+        index = vertexToIndex(adjV);
+    } else {
+        index = INVALID;
+    }
+    return index;
+}
+
+static arcIndex adjArcToVertex (vertex v, int i) {
+    assert(isVertex(v)==TRUE);
+    arc a;
+    int index;
+    //this function is TBC
+    if (i==0) {
+        a.region0 = v.region0;
+        a.region1 = v.region1;
+    } else if (i == 1) {
+        a.region0 = v.region0;
+        a.region1 = v.region2;
+    } else if (i==2) {
+        a.region0 = v.region1;
+        a.region1 = v.region2;
+    }
+    if (isArc (a)) {
+        index = arcToIndex(a);
+    } else {
+        index = INVALID;
+    }
+    return index;
+}
 
 
+static arcIndex adjArcToArc(arc a,int i) {
+    assert(isArc(a)==TRUE);
+    region r;
+    arc a2;
+    int index;
+    if (a.region0.x==a.region1.x) {
+        if (i>=2) {
+            r.x = a.region0.x+1;
+            r.y = min(a.region0.y,a.region1.y);
+        } else {
+            r.x = a.region0.x-1;
+            r.y = max(a.region0.y,a.region1.y);
+        }
+    } else if (a.region0.y==a.region1.y) {
+        if (i>=2) {
+            r.y = a.region0.y+1;
+            r.x = min(a.region0.x,a.region1.x);
+        } else {
+            r.y = a.region0.y-1;
+            r.x = max(a.region0.x,a.region1.x);
+        }
+    } else {
+        if (i>=2) {
+            r.y = max(a.region0.y,a.region1.y);
+            r.x = max(a.region0.x,a.region1.x);
+        } else {
+            r.y = min(a.region0.y,a.region1.y);
+            r.x = min(a.region0.x,a.region1.x);
+        }
+    }
+    a2.region0 = r;
+    if (i%2==0) {
+        a2.region1 = a.region0;
+    } else {
+        a2.region1 = a.region1;
+    }
+    if (isArc (a2)) {
+        index = arcToIndex(a2);
+    } else {
+        index = INVALID;
+    }
+    return index;
+}
+
+static vertexIndex adjVertexToArc(arc a,int i) {
+    assert(isArc(a)==TRUE);
+    region r;
+    vertex v;
+    if (a.region0.x==a.region1.x) {
+        if (i==1) {
+            r.x = a.region0.x+1;
+            r.y = min(a.region0.y,a.region1.y);
+        } else {
+            r.x = a.region0.x-1;
+            r.y = max(a.region0.y,a.region1.y);
+        }
+    } else if (a.region0.y==a.region1.y) {
+        if (i==1) {
+            r.y = a.region0.y+1;
+            r.x = min(a.region0.x,a.region1.x);
+        } else {
+            r.y = a.region0.y-1;
+            r.x = max(a.region0.x,a.region1.x);
+        }
+    } else {
+        if (i==1) {
+            r.y = max(a.region0.y,a.region1.y);
+            r.x = max(a.region0.x,a.region1.x);
+        } else {
+            r.y = min(a.region0.y,a.region1.y);
+            r.x = min(a.region0.x,a.region1.x);
+        }
+    }
+    v.region0 = r;
+    v.region1 = a.region0;
+    v.region2 = a.region1;
+    int index;
+    if (isVertex(v)) {
+        index = vertexToIndex(v);
+    } else {
+        index = INVALID;
+    }
+    return index;
+}
 
 
+static int min (int a, int b) {
+    int min;
+    if (a<b) {
+        min=a;
+    } else {
+        min=b;
+    }
+    return min;
+}
 
+static int max (int a, int b) {
+    int max;
+    if (a>b) {
+        max=a;
+    } else {
+        max=b;
+    }
+    return max;
+}
 
+static int minYCoord (int xval, int limit) {
+    return max(-limit-xval,-limit);
+}
+
+static int maxYCoord (int xval, int limit) {
+    return min(limit,limit-xval);
+}
