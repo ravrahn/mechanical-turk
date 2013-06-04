@@ -265,46 +265,19 @@ action bestMove(Game g) {
                 legalAction.retrainFrom = retrainFor(g, legalAction.actionCode).retrainFrom;
                 legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
             }
-
-
-<<<<<<< HEAD
-        if(!arcsAreEqual(chosenArc, illegalArc())) {
-            if (canAfford(g, CREATE_ARC)) {
-                legalAction.actionCode = CREATE_ARC;
-                legalAction.targetARC = chosenArc;
-            } else if (canRetrain(g, CREATE_ARC)) {
-                
-                legalAction.actionCode = RETRAIN_STUDENTS;
-                legalAction.retrainFrom = retrainFor(g, CREATE_ARC).retrainFrom;
-                legalAction.retrainTo = retrainFor(g, CREATE_ARC).retrainTo;
-            }
-        } else {
-=======
-        if(canAfford(g, CREATE_ARC) &&
-           !arcsAreEqual(chosenArc, illegalArc()) &&
-           getARCs(g, getWhoseTurn(g)) < 3){
-
-            
-            legalAction.actionCode = CREATE_ARC;
-            legalAction.targetARC = chosenArc;
-                } else {
->>>>>>> d2bcb4120c224ea040ce240459ace8afd5a74df1
-            
-            if(canAfford(g, START_SPINOFF)){
+        } else if(canAfford(g, START_SPINOFF)) {
         
                 legalAction.actionCode = START_SPINOFF;
-<<<<<<< HEAD
                 
-            } else if (canRetrain(g, START_SPINOFF)) {
+        } else if (canRetrain(g, START_SPINOFF)) {
                 
                 legalAction.actionCode = RETRAIN_STUDENTS;
                 legalAction.retrainFrom = retrainFor(g, START_SPINOFF).retrainFrom;
                 legalAction.retrainTo = retrainFor(g, START_SPINOFF).retrainTo;
                 
-=======
-            
             if(!arcsAreEqual(chosenArc, illegalArc()) &&
                getARCs(g, getWhoseTurn(g)) < 3){
+                
                 if(canAfford(g, CREATE_ARC)){
                     legalAction.actionCode = CREATE_ARC;
                     legalAction.targetARC = chosenArc;
@@ -312,43 +285,41 @@ action bestMove(Game g) {
                     legalAction.actionCode = RETRAIN_STUDENTS;
                     legalAction.retrainFrom = retrainFor(g, legalAction.actionCode).retrainFrom;
                     legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
-                }
-            } else {
-                if(canAfford(g, START_SPINOFF)){
-                    
-                    legalAction.actionCode = START_SPINOFF;
-                
-                } else if (retrainFor(g, START_SPINOFF).retrainFrom != NULL_STUDENT){
-                    legalAction.actionCode = RETRAIN_STUDENTS;
-                    legalAction.retrainFrom = retrainFor(g, legalAction.actionCode).retrainFrom;
-                    legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
-                
-                }else {
-
->>>>>>> d2bcb4120c224ea040ce240459ace8afd5a74df1
-            } else {
-                chosenGO8 = chooseGO8(g);
-                
-                printf("I chose GO8 (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
-                
-                if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
-                   canAfford(g, BUILD_GO8)){
-                    
-                    legalAction.actionCode = BUILD_GO8;
-                    legalAction.targetVertex = chosenGO8;
-                    
                 } else {
-                
-                    legalAction.actionCode = PASS;
-                
+                    if(canAfford(g, START_SPINOFF)){
+                        
+                        legalAction.actionCode = START_SPINOFF;
+                    
+                    } else if (retrainFor(g, START_SPINOFF).retrainFrom != NULL_STUDENT){
+                        legalAction.actionCode = RETRAIN_STUDENTS;
+                        legalAction.retrainFrom = retrainFor(g, legalAction.actionCode).retrainFrom;
+                        legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
+                        
+                    } else {
+                        chosenGO8 = chooseGO8(g);
+                    
+                        printf("I chose GO8 (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
+                    
+                        if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
+                           canAfford(g, BUILD_GO8)){
+                        
+                            legalAction.actionCode = BUILD_GO8;
+                            legalAction.targetVertex = chosenGO8;
+                        
+                        } else {
+                    
+                            legalAction.actionCode = PASS;
+                        }
+                    }
                 }
             }
         }
     }
     
+    
     printf("I'm playing %d\n", legalAction.actionCode);
     
-    printf("I can afford it! I have: BPS:%d B?:%d MJ:%d M$:%d MTV:%d THD:%d\n", getStudents(g, me, STUDENT_BPS), getStudents(g, me, STUDENT_BQN), getStudents(g, me, STUDENT_MJ), getStudents(g, me, STUDENT_MMONEY), getStudents(g, me, STUDENT_MTV), getStudents(g, me, STUDENT_THD));
+    printf("I have: BPS:%d B?:%d MJ:%d M$:%d MTV:%d THD:%d\n", getStudents(g, me, STUDENT_BPS), getStudents(g, me, STUDENT_BQN), getStudents(g, me, STUDENT_MJ), getStudents(g, me, STUDENT_MMONEY), getStudents(g, me, STUDENT_MTV), getStudents(g, me, STUDENT_THD));
     
     
     assert(isLegalAction(g, legalAction));
@@ -1362,7 +1333,6 @@ static retrainValues retrainFor(Game g, int actionCode){
     degree surplusStudent0 = NULL_STUDENT;
     degree surplusStudent1 = NULL_STUDENT;
     degree surplusStudent2 = NULL_STUDENT;
-    degree retrainFrom = NULL_STUDENT;
     
     me = getWhoseTurn(g);
     
@@ -1404,6 +1374,8 @@ static retrainValues retrainFor(Game g, int actionCode){
         }
         testStudentTo++;
     }
+    
+    desirableRetrain.retrainTo = testStudentTo;
     
     return desirableRetrain;
 
