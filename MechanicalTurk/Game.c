@@ -283,7 +283,7 @@ void throwDice (Game g, int diceScore) {
 // START_SPINOFF is not a legal action here
 void makeAction (Game g, action a) {
     assert(g != NULL && "A test gave us a null game!");
-    assert(a.actionCode >=PASS && a.actionCode <= RETRAIN_STUDENTS && "Action does not exist!");
+    assert(a.actionCode >= PASS && a.actionCode <= RETRAIN_STUDENTS && "Action does not exist!");
     assert(a.actionCode != START_SPINOFF && "Make action was asked to make a spinoff - impossible!");
     uni player = getWhoseTurn(g);
     assert(g->currentTurn !=-1 && "Make action was asked to make an action before the game had started!");

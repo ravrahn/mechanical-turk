@@ -65,17 +65,17 @@ static vertex chooseGO8(Game g);
 static arc chooseArc(Game g);
 
 // Returns all the ARCs adjacent a given vertex.
-static arcs arcsAroundVertex(vertex v);
+static arcs arcsAroundVertex(Game g, vertex v);
 
 // Returns all the ARCs adjacent to a given ARC.
-static arcs arcsAroundArc(arc a);
+static arcs arcsAroundArc(Game g, arc a);
 
 
 // Returns all vertices adjacent to a given vertex.
-static vertices verticesAroundVertex(vertex v);
+static vertices verticesAroundVertex(Game g, vertex v);
 
 // Returns all vertices adjacent to a given ARC.
-static vertices verticesAroundArc(arc a);
+static vertices verticesAroundArc(Game g, arc a);
 
 
 // Checks if two vertices are equal.
@@ -196,7 +196,7 @@ static arcs getAllArcs(Game g);
 //        /    \
 //   ____/  r1  \
 //  /    \      /
-// /  r0  \____/
+// /  r0  \____/   - right
 // \      /    \
 //  \____/  r2  \
 //       \      /
@@ -205,7 +205,7 @@ static arcs getAllArcs(Game g);
 //   /    \
 //  /  r0  \____
 //  \      /    \
-//   \____/  r2  \
+//   \____/  r2  \ - left
 //   /    \      /
 //  /  r1  \____/
 //  \      /
@@ -219,6 +219,8 @@ action bestMove(Game g) {
     vertex chosenCampus;
     arc chosenArc;
     vertex chosenGO8;
+    
+    uni me = getWhoseTurn(g);
     
     chosenGO8 = chooseGO8(g);
     
@@ -248,7 +250,7 @@ action bestMove(Game g) {
             
             if(canAfford(g, CREATE_ARC) &&
                !arcsAreEqual(chosenArc, illegalArc()) &&
-               getARCs(g, getWhoseTurn(g)) < 2){
+               getARCs(g, getWhoseTurn(g)) < 3){
                 
                 legalAction.actionCode = CREATE_ARC;
                 legalAction.targetARC = chosenArc;
@@ -270,17 +272,28 @@ action bestMove(Game g) {
     
     printf("I'm playing %d\n", legalAction.actionCode);
     
+    printf("I can afford it! I have: BPS:%d B?:%d MJ:%d M$:%d MTV:%d THD:%d\n", getStudents(g, me, STUDENT_BPS), getStudents(g, me, STUDENT_BQN), getStudents(g, me, STUDENT_MJ), getStudents(g, me, STUDENT_MMONEY), getStudents(g, me, STUDENT_MTV), getStudents(g, me, STUDENT_THD));
+    
+    
+    assert(isLegalAction(g, legalAction));
+    
     return legalAction;
 }
 
 static vertex chooseGO8(Game g){
     vertex legalVertex = illegalVertex();
     uni me = getWhoseTurn(g);
+    vertices owned;
+    int i;
     
-    //Region Coordinates lie between -2 and 2.
-        
-    if (ownedCampuses(g, me).amountOfVertices != 0) {
-        legalVertex = ownedCampuses(g, me).vertices[0];
+    owned = ownedCampuses(g, me);
+    
+    i = 0;
+    while (i < owned.amountOfVertices) {
+        if (getCampus(g, owned.vertices[i]) == me+1) {
+            legalVertex = owned.vertices[i];
+        }
+        i++;
     }
     
     return legalVertex;
@@ -295,16 +308,16 @@ static vertex chooseCampus(Game g){
         
     arcs mArcs = ownedArcs(g, me);
     int arcCount = 0;
+    int vertexCount = 0;
     
     while (arcCount < mArcs.amountOfArcs && verticesAreEqual(legalVertex, illegalVertex())){
-        testVertices = verticesAroundArc(mArcs.arcs[arcCount]);
+        testVertices = verticesAroundArc(g, mArcs.arcs[arcCount]);
         
-        if (isLegalVertex(g, testVertices.vertices[0])){
-            legalVertex = testVertices.vertices[0];
-        } else if (isLegalVertex(g, testVertices.vertices[1])){
-            legalVertex = testVertices.vertices[1];
-        } else if (isLegalVertex(g, testVertices.vertices[2])){
-            legalVertex = testVertices.vertices[2];
+        while (vertexCount < testVertices.amountOfVertices) {
+            if (isLegalVertex(g, testVertices.vertices[vertexCount])){
+                legalVertex = testVertices.vertices[vertexCount];
+            }
+            vertexCount++;
         }
         arcCount++;
     }
@@ -334,7 +347,7 @@ static arc chooseArc(Game g) {
         while (campusCount < mCampuses.amountOfVertices &&
                arcsAreEqual(legalArc, illegalArc())) {
             
-            testArcs = arcsAroundVertex(mCampuses.vertices[campusCount]);
+            testArcs = arcsAroundVertex(g, mCampuses.vertices[campusCount]);
 
             i = 0;
             while (i < testArcs.amountOfArcs) {
@@ -355,11 +368,11 @@ static arc chooseArc(Game g) {
         while (arcCount < mArcs.amountOfArcs &&
                arcsAreEqual(legalArc, illegalArc())) {
             
-            testArcs = arcsAroundArc(mArcs.arcs[arcCount]);
+            testArcs = arcsAroundArc(g, mArcs.arcs[arcCount]);
 
             i = 0;
             while (i < testArcs.amountOfArcs) {
-                aroundArc = verticesAroundArc(testArcs.arcs[i]);
+                aroundArc = verticesAroundArc(g, testArcs.arcs[i]);
                 campusAroundArc = FALSE;
                 j = 0;
                 while (j < aroundArc.amountOfVertices) {
@@ -384,7 +397,7 @@ static arc chooseArc(Game g) {
     return legalArc;
 }
 
-static arcs arcsAroundVertex(vertex v) {
+static arcs arcsAroundVertex(Game g, vertex v) {
     arc a;
     arc b;
     arc c;
@@ -399,16 +412,25 @@ static arcs arcsAroundVertex(vertex v) {
     c.region0 = v.region2;
     c.region0 = v.region0;
     
-    arr.arcs[0] = a;
-    arr.arcs[1] = b;
-    arr.arcs[2] = c;
+    arr.amountOfArcs = 0;
     
-    arr.amountOfArcs = 3;
+    if (isRealArc(g, a)) {
+        arr.arcs[arr.amountOfArcs] = a;
+        arr.amountOfArcs++;
+    }
+    if (isRealArc(g, b)) {
+        arr.arcs[arr.amountOfArcs] = b;
+        arr.amountOfArcs++;
+    }
+    if (isRealArc(g, c)) {
+        arr.arcs[2] = c;
+        arr.amountOfArcs++;
+    }
     
     return arr;
 }
 
-static arcs arcsAroundArc(arc a) {
+static arcs arcsAroundArc(Game g, arc a) {
     arcs arr;
     
     region r0;
@@ -507,17 +529,29 @@ static arcs arcsAroundArc(arc a) {
         a4.region1 = r2;
     }
     
-    arr.arcs[0] = a1;
-    arr.arcs[1] = a2;
-    arr.arcs[2] = a3;
-    arr.arcs[3] = a4;
+    arr.amountOfArcs = 0;
     
-    arr.amountOfArcs = 4;
+    if (isRealArc(g, a1)) {
+        arr.arcs[arr.amountOfArcs] = a1;
+        arr.amountOfArcs++;
+    }
+    if (isRealArc(g, a2)) {
+        arr.arcs[arr.amountOfArcs] = a2;
+        arr.amountOfArcs++;
+    }
+    if (isRealArc(g, a3)) {
+        arr.arcs[arr.amountOfArcs] = a3;
+        arr.amountOfArcs++;
+    }
+    if (isRealArc(g, a4)) {
+        arr.arcs[arr.amountOfArcs] = a4;
+        arr.amountOfArcs++;
+    }
     
     return arr;
 }
 
-static vertices verticesAroundVertex(vertex v) {
+static vertices verticesAroundVertex(Game g, vertex v) {
     vertices arr;
     vertex v0;
     vertex v1;
@@ -547,13 +581,13 @@ static vertices verticesAroundVertex(vertex v) {
         
         v0.region0 = r0;
         v0.region1 = r1;
-        v0.region2 = r2;
+        v0.region2 = r3;
         
         v1.region0 = r1;
-        v1.region1 = r3;
+        v1.region1 = r2;
         v1.region2 = r4;
         
-        v2.region0 = r2;
+        v2.region0 = r3;
         v2.region1 = r4;
         v2.region2 = r5;
         
@@ -574,27 +608,36 @@ static vertices verticesAroundVertex(vertex v) {
         
         v0.region0 = r0;
         v0.region1 = r1;
-        v0.region2 = r3;
+        v0.region2 = r2;
         
         v1.region0 = r1;
-        v1.region1 = r2;
+        v1.region1 = r3;
         v1.region2 = r4;
         
-        v2.region0 = r3;
+        v2.region0 = r2;
         v2.region1 = r4;
         v2.region2 = r5;
     }
     
-    arr.vertices[0] = v0;
-    arr.vertices[1] = v1;
-    arr.vertices[2] = v2;
+    arr.amountOfVertices = 0;
     
-    arr.amountOfVertices = 3;
+    if (isRealVertex(g, v0)) {
+        arr.vertices[arr.amountOfVertices] = v0;
+        arr.amountOfVertices++;
+    }
+    if (isRealVertex(g, v1)) {
+        arr.vertices[arr.amountOfVertices] = v1;
+        arr.amountOfVertices++;
+    }
+    if (isRealVertex(g, v2)) {
+        arr.vertices[arr.amountOfVertices] = v2;
+        arr.amountOfVertices++;
+    }
     
     return arr;
 }
 
-static vertices verticesAroundArc(arc a) {
+static vertices verticesAroundArc(Game g, arc a) {
     vertices arr;
     
     region r0;
@@ -606,7 +649,6 @@ static vertices verticesAroundArc(arc a) {
     vertex v1;
     
     int facing;
-    
     
     facing = whichWayArc(a);
     
@@ -678,9 +720,17 @@ static vertices verticesAroundArc(arc a) {
         v1.region1 = r2;
         v1.region2 = r3;
     }
-
     
-    arr.amountOfVertices = 2;
+    arr.amountOfVertices = 0;
+    
+    if (isRealVertex(g, v0)) {
+        arr.vertices[arr.amountOfVertices] = v0;
+        arr.amountOfVertices++;
+    }
+    if (isRealVertex(g, v1)) {
+        arr.vertices[arr.amountOfVertices] = v1;
+        arr.amountOfVertices++;
+    }
     
     return arr;
 }
@@ -804,31 +854,34 @@ static int isLegalVertex(Game g, vertex v) {
     
     int i;
     
-    adjacentVertices = verticesAroundVertex(v);
+    adjacentVertices = verticesAroundVertex(g, v);
     
     hasAdjacentCampus = FALSE;
     
     i = 0;
     while (i < adjacentVertices.amountOfVertices) {
         
-        if ((getCampus(g, adjacentVertices.vertices[i]) != VACANT_VERTEX)) {
-            
-                hasAdjacentCampus = TRUE;
+        if (isRealVertex(g, adjacentVertices.vertices[i])) {
+            if ((getCampus(g, adjacentVertices.vertices[i]) != VACANT_VERTEX)) {
+                    hasAdjacentCampus = TRUE;
+            }
         }
         
         i++;
     }
     
-    adjacentArcs = arcsAroundVertex(v);
+    adjacentArcs = arcsAroundVertex(g, v);
     
     hasAdjacentArc = FALSE;
     
     i = 0;
     while (i < adjacentArcs.amountOfArcs) {
         
-        if ((getARC(g, adjacentArcs.arcs[i]) == (getWhoseTurn(g)) + 1)) {
+        if (isLegalArc(g, adjacentArcs.arcs[i])) {
+            if ((getARC(g, adjacentArcs.arcs[i]) == (getWhoseTurn(g)) + 1)) {
                 hasAdjacentArc = TRUE;
             }
+        }
         
         i++;
     }
@@ -852,29 +905,31 @@ static int isLegalArc(Game g, arc a) {
     int i;
     
     hasAdjacentCampus = FALSE;
-    adjacentVertices = verticesAroundArc(a);
+    adjacentVertices = verticesAroundArc(g, a);
     
     i = 0;
     while (i < adjacentVertices.amountOfVertices) {
-        
-        if (getCampus(g, adjacentVertices.vertices[i]) == me+1 ||
-            getCampus(g, adjacentVertices.vertices[i]) == me+4) {
-            
-            hasAdjacentCampus = TRUE;
+        if (isRealVertex(g, adjacentVertices.vertices[i])) {
+            if (getCampus(g, adjacentVertices.vertices[i]) == me+1 ||
+                getCampus(g, adjacentVertices.vertices[i]) == me+4) {
+                
+                hasAdjacentCampus = TRUE;
+            }
         }
         
         i++;
     }
 
     
-    adjacentArcs = arcsAroundArc(a);
+    adjacentArcs = arcsAroundArc(g, a);
     hasAdjacentArc = FALSE;
     
     i = 0;
     while (i < adjacentArcs.amountOfArcs) {
-        
-        if ((getARC(g, adjacentArcs.arcs[i]) == (getWhoseTurn(g)) + 1)) {
-            hasAdjacentArc = TRUE;
+        if (isRealArc(g, adjacentArcs.arcs[i])) {
+            if ((getARC(g, adjacentArcs.arcs[i]) == (getWhoseTurn(g)) + 1)) {
+                hasAdjacentArc = TRUE;
+            }
         }
         
         i++;
@@ -960,24 +1015,24 @@ static arcs ownedArcs(Game g, uni me) {
     
     i = 0;
     while (i < allArcs.amountOfArcs) {
-        
-        if (getARC(g, allArcs.arcs[i]) == me+1 &&
-            isRealArc(g, allArcs.arcs[i])) {
-            
-            j = 0;
-            alreadyCounted = FALSE;
-            while (j < result.amountOfArcs) {
-                if (arcsAreEqual(result.arcs[j], allArcs.arcs[i])) {
-                    alreadyCounted = TRUE;
+        if (isRealArc(g, allArcs.arcs[i])) {
+            if (getARC(g, allArcs.arcs[i]) == me+1) {
+                
+                j = 0;
+                alreadyCounted = FALSE;
+                while (j < result.amountOfArcs) {
+                    if (arcsAreEqual(result.arcs[j], allArcs.arcs[i])) {
+                        alreadyCounted = TRUE;
+                    }
+                    j++;
                 }
-                j++;
+                
+                if (!alreadyCounted) {
+                    result.arcs[result.amountOfArcs] = allArcs.arcs[i];
+                    result.amountOfArcs++;
+                }
+                
             }
-            
-            if (!alreadyCounted) {
-                result.arcs[result.amountOfArcs] = allArcs.arcs[i];
-                result.amountOfArcs++;
-            }
-            
         }
         
         i++;
@@ -1118,7 +1173,7 @@ static spatialInfo retriveInfo(Game g){
                 arcCountC++;
             }
             
-            vertices testVertices = verticesAroundArc(testArc);
+            vertices testVertices = verticesAroundArc(g, testArc);
             int playersVertex0 = getCampus(g, testVertices.vertices[0]);
             int playersVertex1 = getCampus(g, testVertices.vertices[1]);
             
@@ -1396,6 +1451,26 @@ static arcs getAllArcs(Game g) {
     return result;
 }
 
+
+// Sorts a vertex's regions
+//         ____
+//        /    \
+//   ____/  r1  \
+//  /    \x1,y0 /
+// /  r0  \____/   - right
+// \x0,y0 /    \
+//  \____/  r2  \
+//       \x1,y1 /
+//        \____/
+//    ____
+//   /    \
+//  /  r0  \____
+//  \x0,y1 /    \
+//   \____/  r2  \ - left
+//   /    \x1,y0 /
+//  /  r1  \____/
+//  \x0,y0 /
+//   \____/
 static vertex sortVertex(vertex v, int facing) {
     region r0;
     region r1;

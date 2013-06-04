@@ -39,12 +39,32 @@ int main(int argc, const char * argv[]) {
     a = bestMove(g);
     
     assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
     makeAction(g, a);
     
     throwDice(g, 2);
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
+    makeAction(g, a);
     
     
-    throwDice(g, 2);
+    throwDice(g, 2);printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
+    makeAction(g, a);
     
     
     throwDice(g, 3);
@@ -53,12 +73,33 @@ int main(int argc, const char * argv[]) {
     a = bestMove(g);
     
     assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
     makeAction(g, a);
     
     throwDice(g, 4);
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
+    makeAction(g, a);
     
     
     throwDice(g, 5);
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
+    makeAction(g, a);
     
     throwDice(g, 6);
     printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
@@ -66,11 +107,32 @@ int main(int argc, const char * argv[]) {
     a = bestMove(g);
     
     assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
     makeAction(g, a);
     
     throwDice(g, 8);
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
+    makeAction(g, a);
     
     throwDice(g, 9);
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
+    makeAction(g, a);
     
     throwDice(g, 10);
     printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
@@ -78,9 +140,21 @@ int main(int argc, const char * argv[]) {
     a = bestMove(g);
     
     assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
     makeAction(g, a);
     
     throwDice(g, 11);
+    printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));
+    
+    a = bestMove(g);
+    
+    assert(isLegalAction(g, a));
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
+    makeAction(g, a);
     
     int i=0;
     while (i < 3) {
@@ -142,5 +216,8 @@ void retrainFor(Game g, int retrainTo, uni player) {
     a.retrainFrom = RED;
     a.retrainTo = retrainTo;
     
+    if (a.actionCode == START_SPINOFF) {
+        a.actionCode = OBTAIN_PUBLICATION;
+    }
     makeAction(g, a);
 }
