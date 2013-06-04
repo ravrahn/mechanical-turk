@@ -234,17 +234,18 @@ action bestMove(Game g) {
     
     printf("I chose campus (%d, %d), (%d, %d), (%d, %d)\n", chosenCampus.region0.x, chosenCampus.region0.y, chosenCampus.region1.x, chosenCampus.region1.y, chosenCampus.region2.x, chosenCampus.region2.y);
     
-    if(!verticesAreEqual(chosenCampus, illegalVertex()) &&
-       canAfford(g, BUILD_CAMPUS)){
+    if(!verticesAreEqual(chosenCampus, illegalVertex())) {
+       if (canAfford(g, BUILD_CAMPUS)){
+            
+            legalAction.actionCode = BUILD_CAMPUS;
+            legalAction.targetVertex = chosenCampus;
         
-        legalAction.actionCode = BUILD_CAMPUS;
-        legalAction.targetVertex = chosenCampus;
-        
-//    } else if (canRetrain(g, BUILD_CAMPUS) != NULL_STUDENT) {
-//        
-//        legalAction.actionCode = RETRAIN_STUDENTS;
-//        legalAction.retrainFrom = retrainFor(g, BUILD_CAMPUS).retrainFrom;
-//        legalAction.retrainTo = retrainFor(g, BUILD_CAMPUS).retrainTo;
+        } else if (canRetrain(g, BUILD_CAMPUS)) {
+            
+            legalAction.actionCode = RETRAIN_STUDENTS;
+            legalAction.retrainFrom = retrainFor(g, BUILD_CAMPUS).retrainFrom;
+            legalAction.retrainTo = retrainFor(g, BUILD_CAMPUS).retrainTo;
+        }
         
     } else {
         chosenArc = chooseArc(g);
@@ -252,18 +253,28 @@ action bestMove(Game g) {
         printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
         
 
-        if(canAfford(g, CREATE_ARC) &&
-           !arcsAreEqual(chosenArc, illegalArc()) &&
-           getARCs(g, getWhoseTurn(g)) < 3){
-            
-            legalAction.actionCode = CREATE_ARC;
-            legalAction.targetARC = chosenArc;
-                } else {
+        if(!arcsAreEqual(chosenArc, illegalArc())) {
+            if (canAfford(g, CREATE_ARC)) {
+                legalAction.actionCode = CREATE_ARC;
+                legalAction.targetARC = chosenArc;
+            } else if (canRetrain(g, CREATE_ARC)) {
+                
+                legalAction.actionCode = RETRAIN_STUDENTS;
+                legalAction.retrainFrom = retrainFor(g, CREATE_ARC).retrainFrom;
+                legalAction.retrainTo = retrainFor(g, CREATE_ARC).retrainTo;
+            }
+        } else {
             
             if(canAfford(g, START_SPINOFF)){
         
                 legalAction.actionCode = START_SPINOFF;
-            
+                
+            } else if (canRetrain(g, START_SPINOFF)) {
+                
+                legalAction.actionCode = RETRAIN_STUDENTS;
+                legalAction.retrainFrom = retrainFor(g, START_SPINOFF).retrainFrom;
+                legalAction.retrainTo = retrainFor(g, START_SPINOFF).retrainTo;
+                
             } else {
                 chosenGO8 = chooseGO8(g);
                 
