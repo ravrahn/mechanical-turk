@@ -129,6 +129,9 @@ static int canAfford(Game g, int actionCode);
 // Checks if a player can retrain to afford an action.
 static int canRetrain(Game g, int actionCode);
 
+// Checks whether a retrain is possible and returns the student type to
+// retrain from aswell as the student type to train to for a given
+// actionCode.
 static retrainValues retrainFor(Game g, int actionCode);
 
 
@@ -251,7 +254,6 @@ action bestMove(Game g) {
         
         printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
         
-<<<<<<< HEAD
         if(!verticesAreEqual(chosenCampus, illegalVertex())){
             if(canAfford(g, BUILD_CAMPUS)){
             
@@ -262,12 +264,12 @@ action bestMove(Game g) {
                 legalAction.retrainFrom = retrainFor(g, legalAction.actionCode).retrainFrom;
                 legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
             }
-=======
+
 
         if(canAfford(g, CREATE_ARC) &&
            !arcsAreEqual(chosenArc, illegalArc()) &&
            getARCs(g, getWhoseTurn(g)) < 3){
->>>>>>> 3fd32fa40e97cdbe357de3f31717bf50c3e0878d
+
             
             legalAction.actionCode = CREATE_ARC;
             legalAction.targetARC = chosenArc;
@@ -277,7 +279,6 @@ action bestMove(Game g) {
         
                 legalAction.actionCode = START_SPINOFF;
             
-<<<<<<< HEAD
             if(!arcsAreEqual(chosenArc, illegalArc()) &&
                getARCs(g, getWhoseTurn(g)) < 3){
                 if(canAfford(g, CREATE_ARC)){
@@ -299,7 +300,7 @@ action bestMove(Game g) {
                     legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
                 
                 }else {
-=======
+
             } else {
                 chosenGO8 = chooseGO8(g);
                 
@@ -307,7 +308,6 @@ action bestMove(Game g) {
                 
                 if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
                    canAfford(g, BUILD_GO8)){
->>>>>>> 3fd32fa40e97cdbe357de3f31717bf50c3e0878d
                     
                     legalAction.actionCode = BUILD_GO8;
                     legalAction.targetVertex = chosenGO8;
@@ -1338,7 +1338,6 @@ static retrainValues retrainFor(Game g, int actionCode){
     degree surplusStudent1 = NULL_STUDENT;
     degree surplusStudent2 = NULL_STUDENT;
     degree retrainFrom = NULL_STUDENT;
-    retrainValues result;
     
     me = getWhoseTurn(g);
     
@@ -1381,14 +1380,8 @@ static retrainValues retrainFor(Game g, int actionCode){
         testStudentTo++;
     }
     
-<<<<<<< HEAD
     return desirableRetrain;
-=======
-    result.retrainFrom = retrainFrom;
-    result.retrainTo = testStudentTo;
-    
-    return result;
->>>>>>> 3fd32fa40e97cdbe357de3f31717bf50c3e0878d
+
 }
 
 static int whichWayArc(arc a) {
