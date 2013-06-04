@@ -30,8 +30,12 @@ void retrainFor(Game g, int retrainTo, uni player);
 Game newGameWithCrazyResources (void);
 
 int main(int argc, const char * argv[]) {
+    int degrees[] = TEST_DISCIPLINES;
+    int dice[] = TEST_DICE;
     
-    Game g = newGameWithCrazyResources();
+    Game g = newGame(degrees, dice);
+    
+    throwDice(g, 2);
     action a;
     
     printf("\nPlayer %d, turn %d\n", getWhoseTurn(g), getTurnNumber(g));

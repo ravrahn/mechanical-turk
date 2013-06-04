@@ -223,50 +223,49 @@ action bestMove(Game g) {
     vertex chosenGO8;
     
     uni me = getWhoseTurn(g);
+    chosenCampus = chooseCampus(g);
     
-    chosenGO8 = chooseGO8(g);
+    printf("I chose campus (%d, %d), (%d, %d), (%d, %d)\n", chosenCampus.region0.x, chosenCampus.region0.y, chosenCampus.region1.x, chosenCampus.region1.y, chosenCampus.region2.x, chosenCampus.region2.y);
     
-    printf("I chose GO8 (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
-    
-    if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
-        canAfford(g, BUILD_GO8)){
+    if(!verticesAreEqual(chosenCampus, illegalVertex()) &&
+       canAfford(g, BUILD_CAMPUS)){
         
-        legalAction.actionCode = BUILD_GO8;
-        legalAction.targetVertex = chosenGO8;
+        legalAction.actionCode = BUILD_CAMPUS;
+        legalAction.targetVertex = chosenCampus;
         
     } else {
-        chosenCampus = chooseCampus(g);
+        chosenArc = chooseArc(g);
         
-        printf("I chose campus (%d, %d), (%d, %d), (%d, %d)\n", chosenCampus.region0.x, chosenCampus.region0.y, chosenCampus.region1.x, chosenCampus.region1.y, chosenCampus.region2.x, chosenCampus.region2.y);
+        printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
         
-        if(!verticesAreEqual(chosenCampus, illegalVertex()) &&
-           canAfford(g, BUILD_CAMPUS)){
+        if(canAfford(g, CREATE_ARC) &&
+           !arcsAreEqual(chosenArc, illegalArc()) &&
+           getARCs(g, getWhoseTurn(g)) < 3){
             
-            legalAction.actionCode = BUILD_CAMPUS;
-            legalAction.targetVertex = chosenCampus;
+            legalAction.actionCode = CREATE_ARC;
+            legalAction.targetARC = chosenArc;
             
         } else {
-            chosenArc = chooseArc(g);
             
-            printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
+            if(canAfford(g, START_SPINOFF)){
+        
+                legalAction.actionCode = START_SPINOFF;
             
-            if(canAfford(g, CREATE_ARC) &&
-               !arcsAreEqual(chosenArc, illegalArc()) &&
-               getARCs(g, getWhoseTurn(g)) < 3){
-                
-                legalAction.actionCode = CREATE_ARC;
-                legalAction.targetARC = chosenArc;
-                
             } else {
+                chosenGO8 = chooseGO8(g);
                 
-                if(canAfford(g, START_SPINOFF)){
-            
-                    legalAction.actionCode = START_SPINOFF;
+                printf("I chose GO8 (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
                 
+                if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
+                   canAfford(g, BUILD_GO8)){
+                    
+                    legalAction.actionCode = BUILD_GO8;
+                    legalAction.targetVertex = chosenGO8;
+                    
                 } else {
-                    
+                
                     legalAction.actionCode = PASS;
-                    
+                
                 }
             }
         }
@@ -282,7 +281,7 @@ action bestMove(Game g) {
     return legalAction;
 }
 
-static vertex chooseGO8(Game g){
+static vertex chooseGO8(Game g) {
     vertex legalVertex = illegalVertex();
     uni me = getWhoseTurn(g);
     vertices owned;
@@ -1491,6 +1490,8 @@ static arcs getAllArcs(Game g) {
     region r;
     arcs result;
     arc tempArc;
+    
+    result.amountOfArcs = 0;
     
     x = MIN_COORD;
     while (x <= MAX_COORD) {
