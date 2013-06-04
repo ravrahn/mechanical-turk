@@ -32,7 +32,7 @@
 #define LEFT 0
 #define RIGHT 1
 
-#define NULL_STUDENT 7
+#define NULL_STUDENT 6
 
 typedef struct _arcs {
     arc arcs[MAX_ARCS];
@@ -129,6 +129,9 @@ static int canAfford(Game g, int actionCode);
 // Checks if a player can retrain to afford an action.
 static int canRetrain(Game g, int actionCode);
 
+// Checks whether a retrain is possible and returns the student type to
+// retrain from aswell as the student type to train to for a given
+// actionCode.
 static retrainValues retrainFor(Game g, int actionCode);
 
 
@@ -252,7 +255,19 @@ action bestMove(Game g) {
         
         printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
         
+        if(!verticesAreEqual(chosenCampus, illegalVertex())){
+            if(canAfford(g, BUILD_CAMPUS)){
+            
+            legalAction.actionCode = BUILD_CAMPUS;
+            legalAction.targetVertex = chosenCampus;
+            } else if (retrainFor(g, BUILD_CAMPUS).retrainFrom != NULL_STUDENT){
+                legalAction.actionCode = RETRAIN_STUDENTS;
+                legalAction.retrainFrom = retrainFor(g, legalAction.actionCode).retrainFrom;
+                legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
+            }
 
+
+<<<<<<< HEAD
         if(!arcsAreEqual(chosenArc, illegalArc())) {
             if (canAfford(g, CREATE_ARC)) {
                 legalAction.actionCode = CREATE_ARC;
@@ -264,10 +279,21 @@ action bestMove(Game g) {
                 legalAction.retrainTo = retrainFor(g, CREATE_ARC).retrainTo;
             }
         } else {
+=======
+        if(canAfford(g, CREATE_ARC) &&
+           !arcsAreEqual(chosenArc, illegalArc()) &&
+           getARCs(g, getWhoseTurn(g)) < 3){
+
+            
+            legalAction.actionCode = CREATE_ARC;
+            legalAction.targetARC = chosenArc;
+                } else {
+>>>>>>> d2bcb4120c224ea040ce240459ace8afd5a74df1
             
             if(canAfford(g, START_SPINOFF)){
         
                 legalAction.actionCode = START_SPINOFF;
+<<<<<<< HEAD
                 
             } else if (canRetrain(g, START_SPINOFF)) {
                 
@@ -275,6 +301,31 @@ action bestMove(Game g) {
                 legalAction.retrainFrom = retrainFor(g, START_SPINOFF).retrainFrom;
                 legalAction.retrainTo = retrainFor(g, START_SPINOFF).retrainTo;
                 
+=======
+            
+            if(!arcsAreEqual(chosenArc, illegalArc()) &&
+               getARCs(g, getWhoseTurn(g)) < 3){
+                if(canAfford(g, CREATE_ARC)){
+                    legalAction.actionCode = CREATE_ARC;
+                    legalAction.targetARC = chosenArc;
+                } else if (retrainFor(g, CREATE_ARC).retrainFrom != NULL_STUDENT){
+                    legalAction.actionCode = RETRAIN_STUDENTS;
+                    legalAction.retrainFrom = retrainFor(g, legalAction.actionCode).retrainFrom;
+                    legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
+                }
+            } else {
+                if(canAfford(g, START_SPINOFF)){
+                    
+                    legalAction.actionCode = START_SPINOFF;
+                
+                } else if (retrainFor(g, START_SPINOFF).retrainFrom != NULL_STUDENT){
+                    legalAction.actionCode = RETRAIN_STUDENTS;
+                    legalAction.retrainFrom = retrainFor(g, legalAction.actionCode).retrainFrom;
+                    legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
+                
+                }else {
+
+>>>>>>> d2bcb4120c224ea040ce240459ace8afd5a74df1
             } else {
                 chosenGO8 = chooseGO8(g);
                 
@@ -1305,26 +1356,15 @@ static int canRetrain(Game g, int actionCode) {
 
 static retrainValues retrainFor(Game g, int actionCode){
     uni me;
-    int numBPS;
-    int numBQN;
-    int numMJ;
-    int numMTV;
-    int numMMONEY;
+    retrainValues desirableRetrain;
     int testStudentTo;
     int testStudentFrom;
     degree surplusStudent0 = NULL_STUDENT;
     degree surplusStudent1 = NULL_STUDENT;
     degree surplusStudent2 = NULL_STUDENT;
     degree retrainFrom = NULL_STUDENT;
-    retrainValues result;
     
     me = getWhoseTurn(g);
-    
-    numBPS = getStudents(g, me, STUDENT_BPS);
-    numBQN = getStudents(g, me, STUDENT_BQN);
-    numMJ = getStudents(g, me, STUDENT_MJ);
-    numMTV = getStudents(g, me, STUDENT_MTV);
-    numMMONEY = getStudents(g, me, STUDENT_MMONEY);
     
     if(actionCode == BUILD_CAMPUS){
         surplusStudent0 = STUDENT_MMONEY;
@@ -1337,22 +1377,26 @@ static retrainValues retrainFor(Game g, int actionCode){
         surplusStudent1 = STUDENT_BQN;
     }
     
+    desirableRetrain.retrainFrom = NULL_STUDENT;
+    
     testStudentTo = 0;
-    while(testStudentTo < 5 && retrainFrom != NULL_STUDENT){
+    while(testStudentTo < 5 && desirableRetrain.retrainFrom != NULL_STUDENT){
         if(getStudents(g, me, testStudentTo) == 0){
             testStudentFrom = 0;
-            while (testStudentFrom < 5 != retrainFrom != NULL_STUDENT){
+            while (testStudentFrom < 5 != desirableRetrain.retrainFrom != NULL_STUDENT){
                 if(surplusStudent0 == testStudentFrom ||
                    surplusStudent1 == testStudentFrom ||
                    surplusStudent2 == testStudentFrom){
                     if(getExchangeRate(g, me, testStudentFrom, testStudentTo)
                        <= testStudentTo && testStudentFrom != testStudentTo){
-                        retrainFrom = testStudentFrom;
+                        desirableRetrain.retrainFrom = testStudentFrom;
+                        desirableRetrain.retrainTo = testStudentTo;
                     } 
                 } else {
                     if(getExchangeRate(g, me, testStudentFrom, testStudentTo)
                        < testStudentTo && testStudentFrom != testStudentTo){
-                        retrainFrom = testStudentFrom;
+                        desirableRetrain.retrainFrom = testStudentFrom;
+                        desirableRetrain.retrainTo = testStudentTo;
                     } 
                 }
                 testStudentFrom++;
@@ -1361,10 +1405,8 @@ static retrainValues retrainFor(Game g, int actionCode){
         testStudentTo++;
     }
     
-    result.retrainFrom = retrainFrom;
-    result.retrainTo = testStudentTo;
-    
-    return result;
+    return desirableRetrain;
+
 }
 
 static int whichWayArc(arc a) {
