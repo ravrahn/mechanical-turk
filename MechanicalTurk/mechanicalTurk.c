@@ -52,6 +52,11 @@ typedef struct spatialInfo{
     arc arcLocations[NUM_UNIS][MAX_ARCS];
 } spatialInfo;
 
+typedef struct retrainValues {
+    int retrainFrom;
+    int retrainTo;
+} retrainValues;
+
 static spatialInfo retriveInfo(Game g);
 
 // Returns the best vertex on which to build a campus
@@ -123,6 +128,8 @@ static int canAfford(Game g, int actionCode);
 
 // Checks if a player can retrain to afford an action.
 static int canRetrain(Game g, int actionCode);
+
+static retrainValues retrainFor(Game g, int actionCode);
 
 
 // Returns which way an arc is facing.
@@ -239,11 +246,16 @@ action bestMove(Game g) {
         
         printf("I chose campus (%d, %d), (%d, %d), (%d, %d)\n", chosenCampus.region0.x, chosenCampus.region0.y, chosenCampus.region1.x, chosenCampus.region1.y, chosenCampus.region2.x, chosenCampus.region2.y);
         
-        if(!verticesAreEqual(chosenCampus, illegalVertex()) &&
-           canAfford(g, BUILD_CAMPUS)){
+        if(!verticesAreEqual(chosenCampus, illegalVertex())){
+            if(canAfford(g, BUILD_CAMPUS)){
             
             legalAction.actionCode = BUILD_CAMPUS;
             legalAction.targetVertex = chosenCampus;
+            } else if (retrainFor(g, legalAction.actionCode) != NULL_STUDENT){
+                legalAction.actionCode = RETRAIN_STUDENTS;
+                legalAction.retrainFrom = retrainFor(g, legalAction.actionCode);
+                legalAction.retrainTo = STUDENT_MMONEY;
+            }
             
         } else {
             chosenArc = chooseArc(g);
@@ -1280,7 +1292,7 @@ static int canRetrain(Game g, int actionCode) {
     return TRUE;
 }
 
-static degree retrainFor(Game g, int actionCode){
+static retra retrainFor(Game g, int actionCode){
     uni me;
     int numBPS;
     int numBQN;
