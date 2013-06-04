@@ -230,22 +230,28 @@ action bestMove(Game g) {
     vertex chosenGO8;
     
     uni me = getWhoseTurn(g);
+    chosenCampus = chooseCampus(g);
     
-    chosenGO8 = chooseGO8(g);
+    printf("I chose campus (%d, %d), (%d, %d), (%d, %d)\n", chosenCampus.region0.x, chosenCampus.region0.y, chosenCampus.region1.x, chosenCampus.region1.y, chosenCampus.region2.x, chosenCampus.region2.y);
     
-    printf("I chose GO8 (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
-    
-    if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
-        canAfford(g, BUILD_GO8)){
+    if(!verticesAreEqual(chosenCampus, illegalVertex()) &&
+       canAfford(g, BUILD_CAMPUS)){
         
-        legalAction.actionCode = BUILD_GO8;
-        legalAction.targetVertex = chosenGO8;
+        legalAction.actionCode = BUILD_CAMPUS;
+        legalAction.targetVertex = chosenCampus;
+        
+//    } else if (canRetrain(g, BUILD_CAMPUS) != NULL_STUDENT) {
+//        
+//        legalAction.actionCode = RETRAIN_STUDENTS;
+//        legalAction.retrainFrom = retrainFor(g, BUILD_CAMPUS).retrainFrom;
+//        legalAction.retrainTo = retrainFor(g, BUILD_CAMPUS).retrainTo;
         
     } else {
-        chosenCampus = chooseCampus(g);
+        chosenArc = chooseArc(g);
         
-        printf("I chose campus (%d, %d), (%d, %d), (%d, %d)\n", chosenCampus.region0.x, chosenCampus.region0.y, chosenCampus.region1.x, chosenCampus.region1.y, chosenCampus.region2.x, chosenCampus.region2.y);
+        printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
         
+<<<<<<< HEAD
         if(!verticesAreEqual(chosenCampus, illegalVertex())){
             if(canAfford(g, BUILD_CAMPUS)){
             
@@ -256,12 +262,22 @@ action bestMove(Game g) {
                 legalAction.retrainFrom = retrainFor(g, legalAction.actionCode).retrainFrom;
                 legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
             }
+=======
+
+        if(canAfford(g, CREATE_ARC) &&
+           !arcsAreEqual(chosenArc, illegalArc()) &&
+           getARCs(g, getWhoseTurn(g)) < 3){
+>>>>>>> 3fd32fa40e97cdbe357de3f31717bf50c3e0878d
             
-        } else {
-            chosenArc = chooseArc(g);
+            legalAction.actionCode = CREATE_ARC;
+            legalAction.targetARC = chosenArc;
+                } else {
             
-            printf("I chose arc (%d, %d), (%d, %d)\n", chosenArc.region0.x, chosenArc.region0.y, chosenArc.region1.x, chosenArc.region1.y);
+            if(canAfford(g, START_SPINOFF)){
+        
+                legalAction.actionCode = START_SPINOFF;
             
+<<<<<<< HEAD
             if(!arcsAreEqual(chosenArc, illegalArc()) &&
                getARCs(g, getWhoseTurn(g)) < 3){
                 if(canAfford(g, CREATE_ARC)){
@@ -283,9 +299,23 @@ action bestMove(Game g) {
                     legalAction.retrainTo = retrainFor(g, legalAction.actionCode).retrainTo;
                 
                 }else {
+=======
+            } else {
+                chosenGO8 = chooseGO8(g);
+                
+                printf("I chose GO8 (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
+                
+                if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
+                   canAfford(g, BUILD_GO8)){
+>>>>>>> 3fd32fa40e97cdbe357de3f31717bf50c3e0878d
                     
+                    legalAction.actionCode = BUILD_GO8;
+                    legalAction.targetVertex = chosenGO8;
+                    
+                } else {
+                
                     legalAction.actionCode = PASS;
-                    
+                
                 }
             }
         }
@@ -301,7 +331,7 @@ action bestMove(Game g) {
     return legalAction;
 }
 
-static vertex chooseGO8(Game g){
+static vertex chooseGO8(Game g) {
     vertex legalVertex = illegalVertex();
     uni me = getWhoseTurn(g);
     vertices owned;
@@ -1308,6 +1338,7 @@ static retrainValues retrainFor(Game g, int actionCode){
     degree surplusStudent1 = NULL_STUDENT;
     degree surplusStudent2 = NULL_STUDENT;
     degree retrainFrom = NULL_STUDENT;
+    retrainValues result;
     
     me = getWhoseTurn(g);
     
@@ -1350,7 +1381,14 @@ static retrainValues retrainFor(Game g, int actionCode){
         testStudentTo++;
     }
     
+<<<<<<< HEAD
     return desirableRetrain;
+=======
+    result.retrainFrom = retrainFrom;
+    result.retrainTo = testStudentTo;
+    
+    return result;
+>>>>>>> 3fd32fa40e97cdbe357de3f31717bf50c3e0878d
 }
 
 static int whichWayArc(arc a) {
@@ -1504,6 +1542,8 @@ static arcs getAllArcs(Game g) {
     region r;
     arcs result;
     arc tempArc;
+    
+    result.amountOfArcs = 0;
     
     x = MIN_COORD;
     while (x <= MAX_COORD) {
