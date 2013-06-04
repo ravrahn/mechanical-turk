@@ -32,6 +32,8 @@
 #define LEFT 0
 #define RIGHT 1
 
+#define NULL_STUDENT 7
+
 typedef struct _arcs {
     arc arcs[MAX_ARCS];
     int amountOfArcs;
@@ -227,7 +229,7 @@ action bestMove(Game g) {
     printf("I chose GO8 (%d, %d), (%d, %d), (%d, %d)\n", chosenGO8.region0.x, chosenGO8.region0.y, chosenGO8.region1.x, chosenGO8.region1.y, chosenGO8.region2.x, chosenGO8.region2.y);
     
     if(!verticesAreEqual(illegalVertex(), chosenGO8) &&
-       canAfford(g, BUILD_GO8)){
+        canAfford(g, BUILD_GO8)){
         
         legalAction.actionCode = BUILD_GO8;
         legalAction.targetVertex = chosenGO8;
@@ -1275,15 +1277,67 @@ static int canAfford(Game g, int actionCode) {
 }
 
 static int canRetrain(Game g, int actionCode) {
-    int canRetrain;
+    return TRUE;
+}
+
+static degree retrainFor(Game g, int actionCode){
+    uni me;
+    int numBPS;
+    int numBQN;
+    int numMJ;
+    int numMTV;
+    int numMMONEY;
+    int testStudentTo;
+    int testStudentFrom;
+    degree surplusStudent0 = NULL_STUDENT;
+    degree surplusStudent1 = NULL_STUDENT;
+    degree surplusStudent2 = NULL_STUDENT;
+    degree retrainFrom = NULL_STUDENT;
     
-    if (canAfford(g, actionCode)) {
-        canRetrain = FALSE;
-    } else {
-        canRetrain = TRUE;
+    me = getWhoseTurn(g);
+    
+    numBPS = getStudents(g, me, STUDENT_BPS);
+    numBQN = getStudents(g, me, STUDENT_BQN);
+    numMJ = getStudents(g, me, STUDENT_MJ);
+    numMTV = getStudents(g, me, STUDENT_MTV);
+    numMMONEY = getStudents(g, me, STUDENT_MMONEY);
+    
+    if(actionCode == BUILD_CAMPUS){
+        surplusStudent0 = STUDENT_MMONEY;
+    } else if (actionCode == CREATE_ARC){
+        surplusStudent0 = STUDENT_MJ;
+        surplusStudent1 = STUDENT_MTV;
+        surplusStudent2 = STUDENT_MMONEY;
+    } else if (actionCode == START_SPINOFF){
+        surplusStudent0 = STUDENT_BPS;
+        surplusStudent1 = STUDENT_BQN;
     }
     
-    return canRetrain;
+    testStudentTo = 0;
+    while(testStudentTo < 5 && retrainFrom != NULL_STUDENT){
+        if(getStudents(g, me, testStudentTo) == 0){
+            testStudentFrom = 0;
+            while (testStudentFrom < 5 != retrainFrom != NULL_STUDENT){
+                if(surplusStudent0 == testStudentFrom ||
+                   surplusStudent1 == testStudentFrom ||
+                   surplusStudent2 == testStudentFrom){
+                    if(getExchangeRate(g, me, testStudentFrom, testStudentTo)
+                       <= testStudentTo && testStudentFrom != testStudentTo){
+                        retrainFrom = testStudentFrom;
+                    } 
+                } else {
+                    if(getExchangeRate(g, me, testStudentFrom, testStudentTo)
+                       < testStudentTo && testStudentFrom != testStudentTo){
+                        retrainFrom = testStudentFrom;
+                    } 
+                }
+                testStudentFrom++;
+            }
+        }
+        testStudentTo++;
+    }
+    
+    return retrainFrom;
 }
 
 static int whichWayArc(arc a) {

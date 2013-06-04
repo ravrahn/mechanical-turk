@@ -55,5 +55,18 @@
          landmarkName = "verticesAroundVertex()"
          landmarkType = "7">
       </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "MechanicalTurk/mechanicalTurk.c"
+         timestampString = "392002753.229549"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "1346"
+         endingLineNumber = "1346"
+         landmarkName = "retrainFor()"
+         landmarkType = "7">
+      </FileBreakpoint>
    </FileBreakpoints>
 </Bucket>
