@@ -303,8 +303,6 @@ static vertex chooseCampus(Game g){
     vertex legalVertex = illegalVertex();
     vertices testVertices;
     uni me = getWhoseTurn(g);
-    
-    //Region Coordinates lie between -2 and 2.
         
     arcs mArcs = ownedArcs(g, me);
     int arcCount = 0;
@@ -675,7 +673,7 @@ static vertices verticesAroundArc(Game g, arc a) {
         v1.region1 = r2;
         v1.region2 = r3;
         
-    } else if (facing == FORWARDS) {
+    } else if (facing == BACKWARDS) {
         if (a.region0.x > a.region1.x) {
             r0 = a.region0;
             r3 = a.region1;
@@ -698,7 +696,7 @@ static vertices verticesAroundArc(Game g, arc a) {
         v1.region1 = r2;
         v1.region2 = r3;
         
-    } else if (facing == BACKWARDS) {
+    } else if (facing == FORWARDS) {
         if (a.region0.y < a.region1.y) {
             r1 = a.region0;
             r2 = a.region1;
@@ -849,6 +847,8 @@ static int isLegalVertex(Game g, vertex v) {
     int hasAdjacentCampus;
     int hasAdjacentArc;
     
+    int isCampus;
+    
     vertices adjacentVertices;
     arcs adjacentArcs;
     
@@ -886,7 +886,14 @@ static int isLegalVertex(Game g, vertex v) {
         i++;
     }
     
-    isLegal = isRealVertex(g, v) && hasAdjacentArc && !hasAdjacentCampus;
+    isCampus = FALSE;
+    if (isRealVertex(g, v)) {
+        if (getCampus(g, v) != VACANT_VERTEX) {
+            isCampus = TRUE;
+        }
+    }
+    
+    isLegal = isRealVertex(g, v) && hasAdjacentArc && !hasAdjacentCampus && !isCampus;
     
     return isLegal;
 }
@@ -896,6 +903,8 @@ static int isLegalArc(Game g, arc a) {
     
     int hasAdjacentArc;
     int hasAdjacentCampus;
+    
+    int isArc;
     
     arcs adjacentArcs;
     vertices adjacentVertices;
@@ -935,7 +944,15 @@ static int isLegalArc(Game g, arc a) {
         i++;
     }
     
-    isLegal = isRealArc(g, a) && (hasAdjacentArc || hasAdjacentCampus);
+    isArc = FALSE;
+    
+    if (isRealArc(g, a)) {
+        if (getARC(g, a) != VACANT_ARC) {
+            isArc = TRUE;
+        }
+    }
+    
+    isLegal = isRealArc(g, a) && (hasAdjacentArc || hasAdjacentCampus) && !isArc;
     
     return isLegal;
 }
@@ -1300,6 +1317,7 @@ static int whichWayVertex(vertex v) {
     } else {
         sharedY = 0;
         otherY = 0;
+        assert(FALSE);
     }
     
     if (sharedY > otherY) {
@@ -1476,9 +1494,9 @@ static vertex sortVertex(vertex v, int facing) {
     region r1;
     region r2;
     
-    if (facing == LEFT) {
+    if (facing == RIGHT) {
         if (v.region0.y == v.region1.y) {
-            if (v.region0.x > v.region1.y) {
+            if (v.region0.x < v.region1.x) {
                 r0 = v.region0;
                 r1 = v.region1;
             } else {
@@ -1487,7 +1505,7 @@ static vertex sortVertex(vertex v, int facing) {
             }
             r2 = v.region2;
         } else if (v.region1.y == v.region2.y) {
-            if (v.region1.x > v.region2.x) {
+            if (v.region1.x < v.region2.x) {
                 r0 = v.region1;
                 r1 = v.region2;
             } else {
@@ -1496,18 +1514,18 @@ static vertex sortVertex(vertex v, int facing) {
             }
             r2 = v.region0;
         } else {
-            if (v.region2.x > v.region0.x) {
+            if (v.region2.x < v.region0.x) {
                 r0 = v.region2;
                 r1 = v.region0;
             } else {
                 r0 = v.region0;
                 r1 = v.region2;
             }
-            r2 = v.region2;
+            r2 = v.region1;
         }
     } else {
         if (v.region0.y == v.region1.y) {
-            if (v.region0.x > v.region1.y) {
+            if (v.region0.x < v.region1.x) {
                 r1 = v.region0;
                 r2 = v.region1;
             } else {
@@ -1516,7 +1534,7 @@ static vertex sortVertex(vertex v, int facing) {
             }
             r0 = v.region2;
         } else if (v.region1.y == v.region2.y) {
-            if (v.region1.x > v.region2.x) {
+            if (v.region1.x < v.region2.x) {
                 r1 = v.region1;
                 r2 = v.region2;
             } else {
@@ -1525,14 +1543,14 @@ static vertex sortVertex(vertex v, int facing) {
             }
             r0 = v.region0;
         } else {
-            if (v.region2.x > v.region0.x) {
+            if (v.region2.x < v.region0.x) {
                 r1 = v.region2;
                 r2 = v.region0;
             } else {
                 r1 = v.region0;
                 r2 = v.region2;
             }
-            r0 = v.region2;
+            r0 = v.region1;
         }
     }
     
